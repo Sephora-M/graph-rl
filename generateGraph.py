@@ -44,7 +44,7 @@ def example_fullyConnected():
 
 
 N1 = 10
-N2 = 15
+N2 = 10
 G = graphs.Grid2d(N1=N1, N2=N2)
 fig, axes = plt.subplots(1, 2)
 _ = axes[0].spy(G.W)
@@ -184,7 +184,10 @@ obstacles_location = []  #range(height*width)
 walls_location = [50, 51, 52, 53, 54, 55, 56, 74, 75, 76, 77, 78, 79]
 maze = LearningMazeDomain(height, width, reward_location, walls_location, obstacles_location, initial_state, .9, num_sample=2000)
 maze.random_policy_cumulative_rewards
-num_steps, learned_policy, samples, distances = maze.learn_proto_values_basis(num_basis=30, explore=0, max_steps=1000, max_iterations=1000)
+num_steps, learned_policy, samples, distances = maze.learn_node2vec_basis(
+    dimension=30, walk_length=80, num_walks=10, window_size=10, p=1, q=1, epochs=6, explore=0,
+    max_steps=1000, max_iterations=100)
+#num_steps, learned_policy, samples, distances = maze.learn_proto_values_basis(num_basis=30, explore=0, max_steps=1000, max_iterations=1000)
 #num_steps, learned_policy, samples, distances = maze.learn_polynomial_basis(degree=3, explore=0, max_steps=1000, max_iterations=100)
 
 G = maze.domain.graph
@@ -213,3 +216,9 @@ fig, ax = plt.subplots(1, 1)
 G.plot_signal(traj, vertex_size=60, ax=ax)
 plt.show()
 
+
+path = 'node2vec/graph/grid.edgelist'
+X, Y, _ = G.get_edge_list()
+for x, y in zip(X,Y):
+    file.write("%d %d\n" % (x,y))
+file.close()
