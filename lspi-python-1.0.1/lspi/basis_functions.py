@@ -664,12 +664,12 @@ class ProtoValueBasis(BasisFunction):
 
         self.__num_actions = BasisFunction._validate_num_actions(num_actions)
 
-        self._num_laplacian_eigenvectors = num_laplacian_eigenvectors
+        self.num_laplacian_eigenvectors = num_laplacian_eigenvectors
 
-        self._graph = graph
+        self.graph = graph
 
-        self._graph.compute_laplacian(lap_type=lap_type)
-        self._graph.compute_fourier_basis(recompute=True)
+        self.graph.compute_laplacian(lap_type=lap_type)
+        self.graph.compute_fourier_basis(recompute=True)
 
     def size(self):
         r"""Return the vector size of the basis function.
@@ -680,7 +680,7 @@ class ProtoValueBasis(BasisFunction):
             The size of the :math:`\phi` vector.
             (Referred to as k in the paper).
         """
-        return self._num_laplacian_eigenvectors * self.__num_actions
+        return self.num_laplacian_eigenvectors * self.__num_actions
 
     def evaluate(self, state, action):
         r"""Return a :math:`\phi` vector that has a self._num_laplacian_eigenvectors non-zero value.
@@ -711,10 +711,10 @@ class ProtoValueBasis(BasisFunction):
             value in the num_states list used during construction.
         """
 
-        phi = np.zeros(self._num_laplacian_eigenvectors*self.__num_actions)
+        phi = np.zeros(self.num_laplacian_eigenvectors * self.__num_actions)
 
-        action_window = action*self._num_laplacian_eigenvectors
-        for basis_fct in self._graph.U[state[0], 1:self._num_laplacian_eigenvectors+1]:
+        action_window = action*self.num_laplacian_eigenvectors
+        for basis_fct in self.graph.U[state[0], 1:self.num_laplacian_eigenvectors + 1]:
             phi[action_window] = basis_fct
             action_window = action_window + 1
 

@@ -9,7 +9,7 @@ from random import randint, random
 import numpy as np
 
 from sample import Sample
-
+from scipy import sparse
 from pygsp import graphs
 
 
@@ -377,13 +377,23 @@ class GridMazeDomain(Domain):
 
         self.transition_probabilities = np.ones(self.num_states)
 
-        for i in obstacles_location:
-            self.transition_probabilities[i] = obstacles_transition_probability
+        self.transition_probabilities[obstacles_location] = obstacles_transition_probability
 
-        for i in walls_location:
-            self.transition_probabilities[i] = 0.
+        self.transition_probabilities[walls_location] = 0.
 
         self.graph = graphs.Grid2d(N1=height, N2=width)
+
+        self.weighted_graph = graphs.Grid2d(N1=height, N2=width)
+
+        for obstacle in obstacles_location:
+            self.weighted_graph.W[obstacle, :] *= obstacles_transition_probability
+            self.weighted_graph.W[:, obstacle] *= obstacles_transition_probability
+
+        for wall in walls_location:
+            self.weighted_graph.W[wall, :] = 0.
+            self.weighted_graph.W[:, wall] = 0.
+
+        self.weighted_graph.Ne = sparse.tril(self.weighted_graph.W).nnz
 
         self._state = self._init_random_state()
 

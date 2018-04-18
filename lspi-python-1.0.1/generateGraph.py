@@ -125,9 +125,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 height = 10
-width = 15
+width = 10
 reward_location = 14
-obstacles_location = [40, 41, 42, 43, 44, 55, 56, 57, 58 ,59]
+obstacles_location = [40, 41, 42, 43, 44, 55, 56, 57, 58, 59]
 walls_location = [76, 77, 78, 79, 80, 81, 82, 83, 112, 113, 114, 115, 116, 117, 118, 119]
 maze = LearningMazeDomain(height, width, reward_location, walls_location, obstacles_location, num_sample=10000000)
 maze.random_policy_cumulative_rewards
@@ -136,7 +136,7 @@ num_steps, learned_policy, samples, distances = maze.learn_proto_values_basis(nu
 G = maze.domain.graph
 
 for state in range(height*width):
-    if state != reward_location:
+    if state != reward_location and state not in walls_location:
         steps_to_goal = 0
         maze.domain.reset(np.array([state]))
         absorb = False
@@ -150,6 +150,34 @@ for state in range(height*width):
             steps_to_goal += 1
             samples.append(sample)
         print steps_to_goal
+
+
+# --------------------------------------------------
+
+def select_action(domain, policy, V):
+
+    max_v = float('-inf')
+    selected_action = -1
+    for action in range(4):
+        next_location = domain.next_location(domain.current_state(), action)
+        if V[next_location] > max_v:
+            max_v = V[next_location]
+            selected_action = action
+
+    return selected_action
+
+steps_to_goal = 0
+maze.domain.reset(np.array([25]))
+absorb = False
+samples = []
+max_steps=10000
+maze.domain._state
+while (not absorb) and (steps_to_goal < max_steps):
+    action = learned_policy.select_action(maze.domain.current_state())
+    sample = maze.domain.apply_action(action)
+    absorb = sample.absorb
+    steps_to_goal += 1
+    samples.append(sample)
 
 
 # --------------------------------------------------
