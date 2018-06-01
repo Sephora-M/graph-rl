@@ -86,11 +86,11 @@ class LearningMazeDomain():
 
     def learn_node2vec_basis(self, dimension=NUM_BASIS, walk_length=30, num_walks=10, window_size=10,
                              p=1, q=1, epochs=1, discount=DISCOUNT, explore=EXPLORE, max_iterations=MAX_ITERATIONS,
-                             max_steps=NUM_SAMPLES, initial_policy=None):
+                             max_steps=NUM_SAMPLES, initial_policy=None, edgelist ='node2vec/graph/grid6.edgelist'):
 
         if initial_policy is None:
             initial_policy = lspi.Policy(lspi.basis_functions.Node2vecBasis(
-                'node2vec/graph/grid.edgelist', num_actions=4, transition_probabilities=self.domain.transition_probabilities,
+                edgelist, num_actions=4, transition_probabilities=self.domain.transition_probabilities,
                 dimension=dimension,walk_length=walk_length, num_walks=num_walks, window_size=window_size,
                 p=p, q=q, epochs=epochs), discount, explore)
 

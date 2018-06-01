@@ -126,14 +126,36 @@ import numpy as np
 
 height = 10
 width = 10
-reward_location = 14
-obstacles_location = [40, 41, 42, 43, 44, 55, 56, 57, 58, 59]
-walls_location = [76, 77, 78, 79, 80, 81, 82, 83, 112, 113, 114, 115, 116, 117, 118, 119]
-maze = LearningMazeDomain(height, width, reward_location, walls_location, obstacles_location, num_sample=10000000)
+reward_location = 9
+initial_state = None  # np.array([25])
+obstacles_location = [14, 13, 24, 23, 29, 28, 39, 38]  # range(height*width)
+walls_location = [50, 51, 52, 53, 54, 55, 56, 74, 75, 76, 77, 78, 79]
+obstacles_transition_probability = .2
+maze = LearningMazeDomain(height, width, reward_location, walls_location, obstacles_location, num_sample=10000)
 maze.random_policy_cumulative_rewards
-num_steps, learned_policy, samples, distances = maze.learn_proto_values_basis(num_basis=30, explore=0, max_steps=1000, max_iterations=1000)
+num_steps, learned_policy, samples, distances = maze.learn_node2vec_basis(dimension=5, walk_length=30, num_walks=10, window_size=10, p=1, q=1, epochs=3, explore=0, discount=.99, max_steps=1000, max_iterations=500)
+
+num_steps, learned_policy, samples, distances = maze.learn_proto_values_basis(num_basis=30, explore=0, max_steps=500, max_iterations=1000)
 
 G = maze.domain.graph
+
+
+#----------------------------------------------------
+from learning_maze import LearningMazeDomain
+import matplotlib.pyplot as plt
+import numpy as np
+height = 6
+width = 6
+reward_location = 4
+initial_state = None  # np.array([25])
+obstacles_location = []  # range(height*width)
+walls_location = []
+obstacles_transition_probability = .2
+maze = LearningMazeDomain(height, width, reward_location, walls_location, obstacles_location, num_sample=2000)
+maze.random_policy_cumulative_rewards
+num_steps, learned_policy, samples, distances = maze.learn_node2vec_basis(dimension=30, walk_length=30, num_walks=10, window_size=10, p=1, q=1, epochs=3, explore=0, discount=.99, max_steps=1000, max_iterations=500,edgelist ='node2vec/graph/grid6.edgelist')
+
+
 
 for state in range(height*width):
     if state != reward_location and state not in walls_location:
@@ -151,6 +173,21 @@ for state in range(height*width):
             samples.append(sample)
         print steps_to_goal
 
+for state in [0,18,23]:
+    steps_to_goal = 0
+    maze.domain.reset(np.array([state]))
+    absorb = False
+    samples = []
+    max_steps = 1000
+    print maze.domain._state
+    while (not absorb) and (steps_to_goal < max_steps):
+        action = learned_policy.select_action(maze.domain.current_state())
+        sample = maze.domain.apply_action(action)
+        absorb = sample.absorb
+        steps_to_goal += 1
+        samples.append(sample)
+    print steps_to_goal
+    print samples
 
 # --------------------------------------------------
 
@@ -244,9 +281,13 @@ fig, ax = plt.subplots(1, 1)
 G.plot_signal(traj, vertex_size=60, ax=ax)
 plt.show()
 
-
-path = 'node2vec/graph/grid.edgelist'
+from pygsp import graphs, filters, plotting
+path = 'node2vec/graph/grid9.edgelist'
+file = open(path,"a+")
+N1 = N2 = 9
+G = graphs.Grid2d(N1=N1, N2=N2)
 X, Y, _ = G.get_edge_list()
 for x, y in zip(X,Y):
     file.write("%d %d\n" % (x,y))
+
 file.close()

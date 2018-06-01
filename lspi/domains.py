@@ -462,19 +462,20 @@ class GridMazeDomain(Domain):
 
         new_location = self.next_location(self._state[0], action)
 
+        # in the case of failing action
         if new_location == self._state[0] or random() > self.transition_probabilities[new_location]:
             return Sample(self._state.copy(), action, 0., self._state.copy())
 
         next_state = np.array([new_location])
 
         if self.reward_location == new_location:
-            reward = 100
+            reward = 100.
             absorb = True
             sample = Sample(self._state.copy(), action, reward, next_state.copy(), absorb)
             self.reset(self.initial_state)
         else:
-            reward = 0.
             absorb = False
+            reward = 0.
             sample = Sample(self._state.copy(), action, reward, next_state.copy(), absorb)
             self._state = next_state
 
@@ -521,6 +522,7 @@ class GridMazeDomain(Domain):
 
         if action == 3 and not check_bottom_end(state, self.width, self.height):
             next_location = state + self.width
+
 
         return next_location
 

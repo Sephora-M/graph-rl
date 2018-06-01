@@ -22,7 +22,7 @@ def parse_args():
     '''
     parser = argparse.ArgumentParser(description="Run node2vec.")
 
-    parser.add_argument('--input', nargs='?', default='graph/grid.edgelist',
+    parser.add_argument('--input', nargs='?', default='graph/grid10.edgelist',
                         help='Input graph path')
 
     parser.add_argument('--output', nargs='?', default='graph/grid.emb',

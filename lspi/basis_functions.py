@@ -746,7 +746,7 @@ class ProtoValueBasis(BasisFunction):
 
 class Node2vecBasis(BasisFunction):
 
-    """Proto-value basis functions.
+    """Node2vec basis functions.
 
     These basis functions are learned using the node2vec algorithm
     on an undirected graph formed from state transitions induced by the MDP
