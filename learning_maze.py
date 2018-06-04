@@ -10,6 +10,7 @@ NUM_SAMPLES = 5000
 MAX_ITERATIONS = 100000
 MAX_STEPS = 100
 
+
 class LearningMazeDomain():
 
     def __init__(self, height, width, reward_location, walls_location,

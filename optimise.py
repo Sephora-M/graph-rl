@@ -5,10 +5,6 @@ import lspi
 import matplotlib.pyplot as plt
 
 
-def f(basis, weights):
-    return np.dot(basis, weights)
-
-
 def func(params, xdata, ydata):
     return ydata - np.matmul(xdata, params)
 
@@ -33,7 +29,8 @@ def example_grid_maze(plotV=True):
     obstacles_location = [14, 13, 24, 23, 29, 28, 39, 38]  # range(height*width)
     walls_location = [50, 51, 52, 53, 54, 55, 56, 74, 75, 76, 77, 78, 79]
     obstacles_transition_probability = .2
-    maze = LearningMazeDomain(height, width, reward_location, walls_location, obstacles_location, initial_state, obstacles_transition_probability, num_sample=2000)
+    maze = LearningMazeDomain(height, width, reward_location, walls_location, obstacles_location, initial_state,
+                              obstacles_transition_probability, num_sample=2000)
 
     def value_iteration(G, finish_state, obstacles, walls):
         V = [0] * G.N
@@ -78,7 +75,6 @@ def example_grid_maze(plotV=True):
 
 
 def compute_ProtoValueBasis(maze, num_basis=30, weighted_graph=False, lap_type='combinatorial'):
-
     if weighted_graph:
         graph = maze.domain.weighted_graph
     else:
@@ -97,7 +93,7 @@ def compute_ProtoValueBasis(maze, num_basis=30, weighted_graph=False, lap_type='
 def compute_node2VecBasis(maze, dimension=30, walk_length=30, num_walks=10, window_size=10, p=1, q=1, epochs=1):
     basis = lspi.basis_functions.Node2vecBasis('node2vec/graph/grid10.edgelist', num_actions=4,
                                                transition_probabilities=maze.domain.transition_probabilities,
-                                               dimension=dimension,walk_length=walk_length, num_walks=num_walks,
+                                               dimension=dimension, walk_length=walk_length, num_walks=num_walks,
                                                window_size=window_size, p=p, q=q, epochs=epochs)
 
     all_basis = []
@@ -124,51 +120,3 @@ def plot_values(graph, basis, params, save=False, file_name='approx_v.pdf'):
     else:
         plt.savefig(file_name)
         plt.close()
-
-# dimensions=[3,5,10,15,20,25,30,35,40,45,50]
-# pv_errors=[]
-# n2v_errors=[]
-# for dim in dimensions:
-#     pvfs = opt.compute_ProtoValueBasis(maze,num_basis=dim)
-#     n2v = opt.compute_node2VecBasis(maze,dimension=dim, walk_length=50, epochs=3)
-#     pv_params, pv_error = opt.least_squares(pvfs, V, np.random.random(dim))
-#     n2v_params, n2v_error = opt.least_squares(n2v, V, np.random.random(dim))
-#     pv_errors.append(pv_error)
-#     n2v_errors.append(n2v_error)
-#     plot_values(maze.domain.graph, pvfs, pv_params, True, 'graphs/'+str(dim)+'pvfs.pdf')
-#     plot_values(maze.domain.graph, n2v, n2v_params, True, 'graphs/'+str(dim)+'n2v.pdf')
-
-# walk_lengths=[3,5,10,15,20,25,30,35,40,45,50]
-# walk_length=30
-# nums_walks=[6,7,8,9,10]
-# pv_errors=[]
-# n2v_errors=[]
-# dim=5
-# p=2
-# q=0.1
-# for num_walks in nums_walks:
-#     n2v = opt.compute_node2VecBasis(maze,dimension=dim, walk_length=walk_length,num_walks=num_walks, p=p, q=q, epochs=3)
-#     n2v_params, n2v_error = opt.least_squares(n2v, V, np.random.random(dim))
-#     n2v_errors.append(n2v_error)
-#     opt.plot_values(maze.domain.graph, n2v, n2v_params, True, 'graphs/numwalks'+str(num_walks)+'n2v.pdf')
-pv_means=[]
-pv_stds=[]
-n2v_means=[]
-n2v_stds=[]
-dimensions=[3,5,10,15,20,25,30,35,40,45,50]
-for dim in dimensions:
-    pv_errors=[]
-    n2v_errors=[]
-    for i in xrange(10):
-        pvfs = opt.compute_ProtoValueBasis(maze,num_basis=dim,weighted_graph=True, lap_type='normalized')
-        n2v = opt.compute_node2VecBasis(maze,dimension=dim, walk_length=30, epochs=3)
-        pv_params, pv_error = opt.least_squares(pvfs, V, np.random.random(dim))
-        n2v_params, n2v_error = opt.least_squares(n2v, V, np.random.random(dim))
-        pv_errors.append(pv_error)
-        n2v_errors.append(n2v_error)
-    pv_means.append(np.mean(pv_errors))
-    pv_stds.append(np.std(pv_errors))
-    n2v_means.append(np.mean(n2v_errors))
-    n2v_stds.append(np.std(n2v_errors))
-
-#     opt.plot_values(maze.domain.graph, n2v, n2v_params, True, 'graphs/' + str(i) + 'n2v.pdf')

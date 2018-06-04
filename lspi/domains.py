@@ -325,7 +325,7 @@ class GridMazeDomain(Domain):
     nodes are always accessible (rooms, 1. transition probability), some
     nodes might be inaccessible (walls, 0. transition probability), and some
     nodes might be difficult to access (obstacles, p transition probability
-    0 < p < 1). The is one absorbing goal state that gives reward of 100;
+    0 < p < 1). There is one absorbing goal state that gives reward of 100;
     all other states are non absorbing and do not give any reward
 
     Parameters
