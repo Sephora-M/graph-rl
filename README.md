@@ -19,8 +19,6 @@ numpy, matplotlib, gensim, pygsp
     - [learning_maze.py](#learning_maze.py)
     - [optimise.py](#optimise.py)
     - [PVF_simulation.py](#pvf_simulation.py)
-    - twowalls_maze.pdf
-    - twowalls_value.pdf
 
 
 ## lspi
@@ -52,7 +50,7 @@ in which the state space is a set of nodes on a N1 by N2 grid. Most nodes are al
 nodes might be inaccessible (= walls with 0. transition probability), and some
 nodes might be difficult to access (= obstacles with p transition probability
 0 < p < 1). There is one absorbing goal state that gives reward of 100;
-all other states are non absorbing and do not give any reward
+all other states are non absorbing and do not give any reward.
 #### lspi.py
 Contains the main interface to LSPI algorithm.
 
@@ -71,7 +69,7 @@ Implementation of LSTDQ solver with standard matrix solver (the algorithm from F
 ### learning_maze.py
 This class implements maze environments such as the one depicted below.
 
-![alt text](https://github.com/Sephora-M/graph-rl/blob/master/twowalls_maze.pdf)
+![alt text](https://github.com/Sephora-M/graph-rl/blob/master/twowalls_maze.png)
 
 In such environment, the green states are accessible rooms, the dark purple states are strict walls and the
 yellow state is the goal state. An agent can be initially placed in any accessible state and it aims
@@ -89,7 +87,7 @@ the true value function computed using value iteration algorithm.
 For the environment described in the previous subsection, the goal is to approximate the following 
 value functions as closely as possible.
 
-![alt text](https://github.com/Sephora-M/graph-rl/blob/master/twowalls_value.pdf)
+![alt text](https://github.com/Sephora-M/graph-rl/blob/master/twowalls_value.png)
 
 ### PVF_simulation.py
 Code for running simulations. It can be called directly from the terminal as follows \
