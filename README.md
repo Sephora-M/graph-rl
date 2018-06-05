@@ -23,6 +23,7 @@ numpy, matplotlib, gensim, pygsp
 
 ## lspi
 The code in this folder was built on top of this [LSPI python package](https://pythonhosted.org/lspi-python/autodoc/modules.html]). 
+
 Least Squares Policy Iteration (LSPI) implementation.
 
 Implements the algorithms described in the paper
@@ -32,7 +33,7 @@ Implements the algorithms described in the paper
 The implementation is based on the [Matlab implementation](http://www.cs.duke.edu/research/AI/LSPI/) provided by the authors.
 
 #### basis_funciton.py
-This files implements the abstract class BasisFunction. A basis function is a function
+This file implements the abstract class BasisFunction. A basis function is a function
 that takes in a state vector and an action index and returns a vector of features. 
 
 A few specific types of basis functions are further implemented in this file:
