@@ -96,6 +96,19 @@ class Domain(object):
         """
         pass  # pragma: no cover
 
+    def write_edgelist(self, file_name, graph):
+        """Write all graph edges in a file
+        :param file_name:
+        :param graph:
+        :return:
+        """
+        edgelist_file = open(file_name, 'w')
+        v_in, v_out, w = graph.get_edge_list()
+        for i in range(len(v_in)):
+            edgelist_file.write('%d %d \n' % (v_in[i], v_out[i]))
+
+        edgelist_file.close()
+
 
 class ChainDomain(Domain):
 
@@ -347,7 +360,7 @@ class GridMazeDomain(Domain):
     __action_names = ['right', 'up', 'left', 'down']
 
     def __init__(self, height, width, reward_location, walls_location, obstacles_location, initial_state=None,
-                 obstacles_transition_probability=.2):
+                 obstacles_transition_probability=.2, success_probability=.9):
         """Initialize GridMazeDomain.
 
         Parameters
@@ -375,7 +388,7 @@ class GridMazeDomain(Domain):
 
         self.initial_state = initial_state
 
-        self.transition_probabilities = np.ones(self.num_states)
+        self.transition_probabilities = np.ones(self.num_states) * success_probability
 
         self.transition_probabilities[obstacles_location] = obstacles_transition_probability
 
@@ -396,6 +409,34 @@ class GridMazeDomain(Domain):
         self.weighted_graph.Ne = sparse.tril(self.weighted_graph.W).nnz
 
         self._state = self._init_random_state()
+
+    def learn_graph(self, sample_length, num_samples, sampling_policy):
+        samples = []
+
+        for i in xrange(num_samples):
+            sample = self.generate_samples(sample_length, sampling_policy)
+            samples.extend(sample)
+
+        adjency_matrix = sparse.lil_matrix((self.num_states, self.num_states))
+
+        for sample in samples:
+            if sample.state[0] != sample.next_state[0] :
+                adjency_matrix[sample.state[0], sample.next_state[0]] = 1.
+                adjency_matrix[sample.next_state[0], sample.state[0]] = 1.
+
+        return graphs.Graph(adjency_matrix)
+
+    def generate_samples(self, sample_length, sampling_policy):
+        sample = []
+        for i in xrange(sample_length):
+            action = sampling_policy.select_action(self.current_state())
+            s = self.apply_action(action)
+            sample.append(s)
+            if s.absorb:
+                return sample
+        self.reset(self.initial_state)
+
+        return sample
 
     def num_actions(self):
         """Return number of actions.
@@ -514,15 +555,14 @@ class GridMazeDomain(Domain):
         if action == 0 and not check_right_end(state, self.width):
             next_location = state + 1
 
-        if action == 1 and not check_top_end(state, self.width):
+        elif action == 1 and not check_top_end(state, self.width):
             next_location = state - self.width
 
-        if action == 2 and not check_left_end(state, self.width):
+        elif action == 2 and not check_left_end(state, self.width):
             next_location = state - 1
 
-        if action == 3 and not check_bottom_end(state, self.width, self.height):
+        elif action == 3 and not check_bottom_end(state, self.width, self.height):
             next_location = state + self.width
-
 
         return next_location
 
@@ -585,7 +625,7 @@ class GridMazeDomain(Domain):
         str
             String representation of action.
         """
-        return ChainDomain.__action_names[action]
+        return GridMazeDomain.__action_names[action]
 
     def _init_random_state(self):
         """Return randomly initialized state of the specified size."""
@@ -593,6 +633,275 @@ class GridMazeDomain(Domain):
         random_state = randint(0, self.num_states - 1)
 
         while self.transition_probabilities[random_state] == 0. or self.reward_location == random_state:
+            random_state = randint(0, self.num_states - 1)
+
+        return np.array([random_state])
+
+
+class SymmetricMazeDomain(Domain):
+    """
+    Low stretch tree maze domain.
+    """
+
+    __action_names = ['right', 'up', 'left', 'down']
+
+    def __init__(self, rewards_locations, obstacles_location, initial_state=None,
+                 obstacles_transition_probability=.2, success_probability=.9):
+
+        if obstacles_transition_probability < 0 or obstacles_transition_probability > 1:
+            raise ValueError('obstacles_transition_probability must be in range [0, 1]')
+
+        self.num_states = 64
+
+        self.rewards_locations = rewards_locations
+
+        self.initial_state = initial_state
+
+        self.transition_probabilities = np.ones(self.num_states) * success_probability
+
+        self.transition_probabilities[obstacles_location] = obstacles_transition_probability
+
+        self.graph = graphs.LowStretchTree(k=3)
+
+        self.weighted_graph = graphs.LowStretchTree(k=3)
+
+        for obstacle in obstacles_location:
+            self.weighted_graph.W[obstacle, :] *= obstacles_transition_probability
+            self.weighted_graph.W[:, obstacle] *= obstacles_transition_probability
+
+        self.weighted_graph.Ne = sparse.tril(self.weighted_graph.W).nnz
+
+        self._state = self._init_random_state()
+
+    def learn_graph(self, sample_length, num_samples, sampling_policy):
+        samples = []
+
+        for i in xrange(num_samples):
+            sample = self.generate_samples(sample_length, sampling_policy)
+            samples.extend(sample)
+
+        adjency_matrix = sparse.lil_matrix((self.num_states, self.num_states))
+
+        for sample in samples:
+            if sample.state[0] != sample.next_state[0]:
+                adjency_matrix[sample.state[0], sample.next_state[0]] = 1.
+                adjency_matrix[sample.next_state[0], sample.state[0]] = 1.
+
+        return graphs.Graph(adjency_matrix)
+
+    def generate_samples(self, sample_length, sampling_policy):
+        sample = []
+        for i in xrange(sample_length):
+            action = sampling_policy.select_action(self.current_state())
+            s = self.apply_action(action)
+            sample.append(s)
+            if s.absorb:
+                return sample
+        self.reset(self.initial_state)
+        return sample
+
+    def num_actions(self):
+        """Return number of actions.
+
+        This domain has 4 actions.
+
+        Returns
+        -------
+        int
+            Number of actions
+
+        """
+        return 4
+
+    def current_state(self):
+        """Return the current state of the domain.
+
+        Returns
+        -------
+        numpy.array
+            The current state as a 1D numpy vector of type int.
+
+        """
+        return self._state
+
+    def apply_action(self, action):
+        """Apply the action to the grid.
+
+        If left is applied then the occupied state index will decrease by 1.
+        Unless the agent is already at 0, in which case the state will not
+        change.
+
+        If right is applied then the occupied state index will increase by 1.
+        Unless the agent is already at num_states-1, in which case the state
+        will not change.
+
+        The reward function is determined by the reward location specified when
+        constructing the domain.
+
+        If failure_probability is > 0 then there is the chance for the left
+        and right actions to fail. If the left action fails then the agent
+        will move right. Similarly if the right action fails then the agent
+        will move left.
+
+        Parameters
+        ----------
+        action: int
+            Action index. Must be in range [0, num_actions())
+
+        Returns
+        -------
+        sample.Sample
+            The sample for the applied action.
+
+        Raises
+        ------
+        ValueError
+            If the action index is outside of the range [0, num_actions())
+
+        """
+        if action < 0 or action >= self.num_actions():
+            raise ValueError('Action index outside of bounds [0, %d)' %
+                             self.num_actions())
+
+        new_location = self.next_location(self._state[0], action)
+
+        # in the case of failing action
+        if new_location == self._state[0] or random() > self.transition_probabilities[new_location]:
+            return Sample(self._state.copy(), action, 0., self._state.copy())
+
+        next_state = np.array([new_location])
+
+        if new_location in self.rewards_locations:
+            reward = 100.
+            absorb = True
+            sample = Sample(self._state.copy(), action, reward, next_state.copy(), absorb)
+            self.reset(self.initial_state)
+        else:
+            absorb = False
+            reward = 0.
+            sample = Sample(self._state.copy(), action, reward, next_state.copy(), absorb)
+            self._state = next_state
+
+        return sample
+
+    def next_location(self, state, action):
+        if action < 0 or action >= self.num_actions():
+            raise ValueError('Action index outside of bounds [0, %d)' %
+                             self.num_actions())
+
+        if state < 0 or state >= self.num_states:
+            raise ValueError('Action index outside of bounds [0, %d)' %
+                             self.num_states)
+
+        no_right = [1, 5, 7, 11, 13, 17, 21, 23, 27, 29, 31, 33, 37, 39, 43, 45, 47, 49, 53, 55, 59, 61, 63]
+        no_left = [0, 2, 4, 8, 10, 14, 16, 18, 20, 24, 30, 32, 34, 36, 40, 42, 46, 50, 52, 56, 58, 62]
+        no_up = [1, 2, 5, 6, 7, 9, 10, 11, 13, 14, 17, 18, 21, 22, 23, 25, 26, 27, 29, 30, 31,
+                 33, 34, 37, 38, 39, 41, 42, 43, 45, 46, 47, 49, 50, 53, 54, 55, 57, 58, 59, 61, 62, 63]
+        no_down = [0, 1, 3, 4, 5, 7, 8, 11, 12, 13, 15, 16, 17, 19, 20, 21, 23, 24, 27, 28, 29, 31,
+                   32, 33, 35, 36, 39, 40, 43, 44, 45, 47, 48, 49, 51, 52, 53, 55, 56, 59, 60, 61, 63]
+
+        next_location = state
+        if action == 0 and state not in no_right:
+            if state in [15, 37]:
+                next_location = state + 11
+            elif state % 2 == 1:
+                next_location = state + 3
+            else:
+                next_location = state + 1
+
+        elif action == 1 and state not in no_up:
+            if state in [3, 19, 35, 51]:
+                next_location = state + 6
+            elif state == 15:
+                next_location = state + 22
+            else:
+                next_location = state + 2
+
+        elif action == 2 and state not in no_left:
+            if state in [26, 48]:
+                next_location = state - 11
+            elif state % 2 == 0:
+                next_location = state - 3
+            else:
+                next_location = state - 1
+
+        elif action == 3 and state not in no_down:
+            if state in [9, 25, 41, 57]:
+                next_location = state - 6
+            elif state == 37:
+                next_location = state - 22
+            else:
+                next_location = state - 2
+
+        return next_location
+
+    def reset(self, initial_state=None):
+        """Reset the domain to initial state or specified state.
+
+        If the state is unspecified then it will generate a random state, just
+        like when constructing from scratch.
+
+        State must be the same size as the original state. State values can be
+        either 0 or 1. There must be one and only one location that contains
+        a value of 1. Whatever the numpy array type used, it will be converted
+        to an integer numpy array.
+
+        Parameters
+        ----------
+        initial_state: numpy.array
+            The state to set the simulator to. If None then set to a random
+            state.
+
+        Raises
+        ------
+        ValueError
+            If initial state's shape does not match (num_states, ). In
+            otherwords the initial state must be a 1D numpy array with the
+            same length as the existing state.
+        ValueError
+            If part of the state has a value or 1, or there are multiple
+            parts of the state with value of 1.
+        ValueError
+            If there are values in the state other than 0 or 1.
+
+        """
+        if initial_state is None:
+            self._state = self._init_random_state()
+        else:
+            if initial_state.shape != (1, ):
+                raise ValueError('The specified state did not match the '
+                                 + 'current state size')
+            state = initial_state.astype(np.int)
+            if state[0] < 0 or state[0] >= self.num_states:
+                raise ValueError('State value must be in range '
+                                 + '[0, num_states)')
+            if self.transition_probabilities[state[0]] == 0.:
+                raise ValueError('Initial state cannot be an inaccessible state')
+            if state[0] in self.rewards_locations:
+                raise ValueError('Initial state cannot be an absorbing state')
+            self._state = state
+
+    def action_name(self, action):
+        """Return string representation of actions.
+
+        0:
+            left
+        1:
+            right
+
+        Returns
+        -------
+        str
+            String representation of action.
+        """
+        return SymmetricMazeDomain.__action_names[action]
+
+    def _init_random_state(self):
+        """Return randomly initialized state of the specified size."""
+
+        random_state = randint(0, self.num_states - 1)
+
+        while self.transition_probabilities[random_state] == 0. or random_state in self.rewards_locations:
             random_state = randint(0, self.num_states - 1)
 
         return np.array([random_state])

@@ -3,9 +3,14 @@
 
 import abc
 import networkx as nx
-import node2vec
+from node2vec import node2vec
+from struc2vec.src import struc2vec
+from struc2vec.src import graph
 from gensim.models import Word2Vec
+from gensim.models.word2vec import LineSentence
+
 import numpy as np
+from graphwave import graphwave
 
 
 class BasisFunction(object):
@@ -761,7 +766,7 @@ class Node2vecBasis(BasisFunction):
     """
 
     def __init__(self, graph_edgelist, num_actions, transition_probabilities, dimension,
-                 walk_length=20, num_walks=10, window_size=10, p=1, q=1, epochs=1, workers=8):
+                 walk_length=100, num_walks=50, window_size=10, p=1, q=1, epochs=1, workers=8):
         """Initialize ExactBasis."""
         if graph_edgelist is None:
             raise ValueError('graph cannot be None')
@@ -784,7 +789,7 @@ class Node2vecBasis(BasisFunction):
 
         self.G = node2vec.Graph(self._nxgraph, False, self._p, self._q, transition_probabilities)
         self.G.preprocess_transition_probs()
-        walks = self.G.simulate_walks(self._num_walks, self._walk_length)
+        walks = self.G.simulate_ranadom_walks(self._num_walks, self._walk_length)
         self.model = self.learn_embeddings(walks)
 
     def size(self):
@@ -830,7 +835,13 @@ class Node2vecBasis(BasisFunction):
         phi = np.zeros(self._dimension*self.__num_actions)
 
         action_window = action*self._dimension
-        for basis_fct in self.model[str(state[0])]:
+
+        try:
+            basis_fcts = self.model[str(state[0])]
+        except KeyError:
+            basis_fcts = [0] * self._dimension
+
+        for basis_fct in basis_fcts:
             phi[action_window] = basis_fct
             action_window = action_window + 1
 
@@ -882,3 +893,258 @@ class Node2vecBasis(BasisFunction):
 
         return model
 
+
+class GraphWaveBasis(BasisFunction):
+
+    """GraphWave basis functions.
+
+    These basis functions are formed using structural node embeddings
+    on an undirected graph formed from state transitions induced by the MDP
+
+    Parameters
+    ----------
+    graph: pygsp.graphs
+        Graph where the nodes are the states and the edges represent transitions
+    num_actions: int
+        Number of possible actions.
+    num_laplacian_eigenvectors
+    """
+
+    def __init__(self, graph_edgelist, num_actions, dimension, time_pts_range=[0, 100], taus='auto', nb_filters=1):
+        """Initialize ExactBasis."""
+        if graph_edgelist is None:
+            raise ValueError('graph cannot be None')
+
+        if dimension < 1:
+            raise ValueError('dimension must be >= 1')
+
+        self.__num_actions = BasisFunction._validate_num_actions(num_actions)
+
+        self._dimension = dimension
+
+        self._nxgraph = self.read_graph(graph_edgelist)
+
+        chi, heat_print, taus = graphwave.graphwave_alg(self._nxgraph, np.linspace(time_pts_range[0],time_pts_range[1],
+                                                        int(dimension/2)), taus=taus,
+                                                        nb_filters=nb_filters, verbose=True)
+
+        self.structural_emb = chi
+
+    def size(self):
+        r"""Return the vector size of the basis function.
+
+        Returns
+        -------
+        int
+            The size of the :math:`\phi` vector.
+            (Referred to as k in the paper).
+        """
+        return self._dimension * self.__num_actions
+
+    def read_graph(self, edge_list):
+        '''
+        Reads the input network in networkx.
+        '''
+
+        G = nx.read_edgelist(edge_list, nodetype=int, create_using=nx.DiGraph())
+        for edge in G.edges():
+            G[edge[0]][edge[1]]['weight'] = 1
+
+        G = G.to_undirected()
+
+        return G
+
+    def evaluate(self, state, action):
+        r"""Return a :math:`\phi` vector that has a self._num_laplacian_eigenvectors non-zero value.
+
+        Parameters
+        ----------
+        state: numpy.array
+            The state to get the features for. When calculating Q(s, a) this is
+            the s.
+        action: int
+            The action index to get the features for.
+            When calculating Q(s, a) this is the a.
+
+        Returns
+        -------
+        numpy.array
+            :math:`\phi` vector
+
+        Raises
+        ------
+        IndexError
+            If action index < 0 or action index > num_actions
+        ValueError
+            If the size of the state does not match the the size of the
+            num_states list used during construction.
+        ValueError
+            If any of the state variables are < 0 or >= the corresponding
+            value in the num_states list used during construction.
+        """
+
+        phi = np.zeros(self._dimension * self.__num_actions)
+
+        action_window = action*self._dimension
+        for basis_fct in self.structural_emb[state[0]]:
+            phi[action_window] = basis_fct
+            action_window = action_window + 1
+
+        return phi
+
+    @property
+    def num_actions(self):
+        """Return number of possible actions."""
+        return self.__num_actions
+
+    @num_actions.setter
+    def num_actions(self, value):
+        """Set the number of possible actions.
+
+        Parameters
+        ----------
+        value: int
+            Number of possible actions. Must be >= 1.
+
+        Raises
+        ------
+        ValueError
+            if value < 1.
+        """
+        if value < 1:
+            raise ValueError('num_actions must be at least 1.')
+        self.__num_actions = value
+
+
+class Struc2vecBasis(BasisFunction):
+
+    """Node2vec basis functions.
+
+    These basis functions are learned using the node2vec algorithm
+    on an undirected graph formed from state transitions induced by the MDP
+
+    Parameters
+    ----------
+    graph: pygsp.graphs
+        Graph where the nodes are the states and the edges represent transitions
+    num_actions: int
+        Number of possible actions.
+
+    """
+
+    def __init__(self, graph_edgelist, num_actions, dimension,
+                 walk_length=100, num_walks=50, window_size=10, epochs=1, workers=8, OPT1=False, OPT2=False):
+        """Initialize ExactBasis."""
+        if graph_edgelist is None:
+            raise ValueError('graph cannot be None')
+
+        if dimension < 0:
+            raise ValueError('dimension must be >= 0')
+
+        self.__num_actions = BasisFunction._validate_num_actions(num_actions)
+
+        self._dimension = dimension
+
+        self._graph = graph.load_edgelist(graph_edgelist, undirected=True)
+        self._walk_length = walk_length
+        self._num_walks = num_walks
+        self._window_size = window_size
+        self._epochs = epochs
+        self._workers = workers
+        self._OPT1 = OPT1
+        self._OPT2 = OPT2
+
+        self.G = struc2vec.Graph(self._graph, workers=self._workers)
+
+        self.exec_struc2vec()
+        self.model = self.learn_embeddings()
+
+    def size(self):
+        r"""Return the vector size of the basis function.
+
+        Returns
+        -------
+        int
+            The size of the :math:`\phi` vector.
+            (Referred to as k in the paper).
+        """
+        return self._dimension * self.__num_actions
+
+    def evaluate(self, state, action):
+        r"""Return a :math:`\phi` vector that has a self._num_laplacian_eigenvectors non-zero value.
+
+        Parameters
+        ----------
+        state: numpy.array
+            The state to get the features for. When calculating Q(s, a) this is
+            the s.
+        action: int
+            The action index to get the features for.
+            When calculating Q(s, a) this is the a.
+
+        Returns
+        -------
+        numpy.array
+            :math:`\phi` vector
+
+        Raises
+        ------
+        IndexError
+            If action index < 0 or action index > num_actions
+        ValueError
+            If the size of the state does not match the the size of the
+            num_states list used during construction.
+        ValueError
+            If any of the state variables are < 0 or >= the corresponding
+            value in the num_states list used during construction.
+        """
+
+        phi = np.zeros(self._dimension*self.__num_actions)
+
+        action_window = action*self._dimension
+
+        try:
+            basis_fcts = self.model[str(state[0])]
+        except KeyError:
+            basis_fcts = [0] * self._dimension
+
+        for basis_fct in basis_fcts:
+            phi[action_window] = basis_fct
+            action_window = action_window + 1
+
+        return phi
+
+    @property
+    def num_actions(self):
+        """Return number of possible actions."""
+        return self.__num_actions
+
+    def learn_embeddings(self):
+        '''
+        Learn embeddings by optimizing the Skipgram objective using SGD.
+        '''
+        walks = LineSentence('random_walks.txt')
+        model = Word2Vec(walks, size=self._dimension, window=self._window_size, min_count=0, hs=1, sg=1,
+                         workers=self._workers, iter=self._epochs)
+        return model
+
+    def exec_struc2vec(self):
+        '''
+        Pipeline for representational learning for all nodes in a graph.
+        '''
+
+        if self._OPT1:
+            self.G.preprocess_neighbors_with_bfs_compact()
+        else:
+            self.G.preprocess_neighbors_with_bfs()
+
+        if self._OPT2:
+            self.G.create_vectors()
+            self.G.calc_distances(compactDegree=self._OPT1)
+        else:
+            self.G.calc_distances_all_vertices(compactDegree=self._OPT1)
+
+        self.G.create_distances_network()
+        self.G.preprocess_parameters_random_walk()
+
+        self.G.simulate_walks(self._num_walks, self._walk_length)

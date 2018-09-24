@@ -31,15 +31,22 @@ class Graph():
                 if len(walk) == 1:
                     walk.append(cur_nbrs[alias_draw(alias_nodes[cur][0], alias_nodes[cur][1])])
                 else:
-                    prev = walk[-2]
-                    next = cur_nbrs[alias_draw(alias_edges[(prev, cur)][0],
+                    idx_prev = -2
+                    prev = walk[idx_prev]
+                    while prev == cur and len(walk) > (idx_prev*-1):
+                        idx_prev -= 1
+                        prev = walk[idx_prev]
+                    if prev == cur:
+                        next = cur
+                    else:
+                        next = cur_nbrs[alias_draw(alias_edges[(prev, cur)][0],
                                                alias_edges[(prev, cur)][1])]
-                    if np.random.rand() <= self.transition_probabilities[next]:
-                        walk.append(next)
+                        if np.random.rand() > self.transition_probabilities[next]:
+                            next = cur
+                    walk.append(next)
                     trials += 1
             else:
                 break
-
         return walk
 
     def simulate_walks(self, num_walks, walk_length):
@@ -56,6 +63,24 @@ class Graph():
             for node in nodes:
                 if self.transition_probabilities[node] > 0:
                     walks.append(self.node2vec_walk(walk_length=walk_length, start_node=node))
+
+        return walks
+
+    def simulate_ranadom_walks(self, num_walks, walk_length):
+        '''
+        Repeatedly simulate random walks from each node.
+        '''
+        G = self.G
+        walks = []
+        nodes = list(G.nodes())
+        print 'Walk iteration:'
+        for walk_iter in range(num_walks):
+            print str(walk_iter + 1), '/', str(num_walks)
+            random.shuffle(nodes)
+            node = random.choice(nodes)
+            while self.transition_probabilities[node] == 0.:
+                node = random.choice(nodes)
+            walks.append(self.node2vec_walk(walk_length=walk_length, start_node=node))
 
         return walks
 

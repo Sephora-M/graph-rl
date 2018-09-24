@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 from learning_maze import LearningMazeDomain
 
 num_samples = 2000
-DIMENSION = [5, 10]
-DISCOUNT = [0.9, 0.95, 0.99]
-GRID_SIZES = range(5,11)
+DIMENSION = [5, 10, 20, 30, 40, 50, 60]
+DISCOUNT = [0.8, 0.9, 0.95, 0.99]
+GRID_SIZES = [10]
+
 
 def main():
     for discount in DISCOUNT:
@@ -15,19 +16,21 @@ def main():
                 print('>>>>>>>>>>>>>>>>>>>>>>>>>> Simulation grid of size : ' +str(grid_size)+ 'x'+str(grid_size))
                 print('>>>>>>>>>>>>>>>>>>>>>>>>>> dimension basis function : ' + str(dimension))
                 print('>>>>>>>>>>>>>>>>>>>>>>>>>> discount factor : ' + str(discount))
-                height = width = grid_size
+
                 num_states = grid_size*grid_size
-                reward_location = grid_size - 1
-                obstacles_location = []
-                walls_location = []
-                maze = LearningMazeDomain(height, width, reward_location, walls_location, obstacles_location,
-                                          num_sample=num_samples)
+                reward_location = 18
+                walls_location = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+                                  10, 20, 30, 40, 50, 60, 70, 80, 90,
+                                  9, 19, 29, 39, 49, 59, 69, 79, 89, 99,
+                                  90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
+                                  41, 42, 43, 44, 46, 47, 48, 49]
+                maze = tworooms()
 
                 pvf_all_results = {}
 
                 for k in xrange(10):
                     pvf_num_steps, pvf_learned_policy, pvf_samples, pvf_distances = maze.learn_proto_values_basis(num_basis=dimension, explore=0,
-                                                                                                                  discount=discount, max_steps=500,
+                                                                                                                  discount=discount, max_steps=100,
                                                                                                                   max_iterations=200)
 
                     pvf_all_steps_to_goal, pvf_all_samples, pvf_all_cumulative_rewards = simulate(num_states, reward_location,
@@ -35,9 +38,9 @@ def main():
                     pvf_all_results[k] = {'steps_to_goal': pvf_all_steps_to_goal, 'samples': pvf_all_samples,
                                           'cumul_rewards': pvf_all_cumulative_rewards, 'learning_distances': pvf_distances}
 
-                plot_results(pvf_all_results, grid_size, reward_location, dimension, discount, num_samples)
+                plot_results(pvf_all_results, grid_size, reward_location, walls_location, dimension, discount, num_samples)
 
-                # UNCOMMENT the lines below to right the results in pickle files
+                # UNCOMMENT the lines below to write the results in pickle files
                 # n2v_pickle = open('pickles/n2v_' + str(grid_size) + 'grid_' + str(DIMENSION) + 'dimension_' + str(DISCOUNT) + 'discount_'+ str(NUM_SAMPLE) + 'samples', 'wb')
                 # pvf_pickle = open('pickles/pvf_' + str(grid_size) + 'grid_' + str(DIMENSION) + 'dimension_' + str(DISCOUNT) + 'discount_'+ str(NUM_SAMPLE) + 'samples', 'wb')
                 #
@@ -47,6 +50,37 @@ def main():
                 #
                 # n2v_pickle.close()
                 # pvf_pickle.close()
+
+
+def tworooms(num_sample=3000):
+    height = 10
+    width = 10
+    reward_location = 18
+    initial_state = None  # np.array([25])
+    obstacles_location = []  # range(height*width)
+    walls_location = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+                      10, 20, 30, 40, 50, 60, 70, 80, 90,
+                      9, 19, 29, 39, 49, 59, 69, 79, 89, 99,
+                      90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
+                      41, 42, 43, 44, 46, 47, 48, 49]
+    obstacles_transition_probability = .2
+    maze = LearningMazeDomain(height, width, reward_location, walls_location, obstacles_location, initial_state,
+                              obstacles_transition_probability, num_sample=num_sample)
+
+    return maze
+
+
+def tworooms_nowalls(num_sample=3000):
+    height = 10
+    width = 10
+    reward_location = 18
+    initial_state = None  # np.array([25])
+    obstacles_location = []  # range(height*width)
+    walls_location = [40, 41, 42, 43, 44, 46, 47, 48, 49]
+    obstacles_transition_probability = .2
+    maze = LearningMazeDomain(height, width, reward_location, walls_location, obstacles_location, initial_state,
+                              obstacles_transition_probability, num_sample=num_sample)
+    return maze
 
 
 def simulate(num_states, reward_location, walls_location, maze, learned_policy, max_steps=500):
@@ -72,7 +106,7 @@ def simulate(num_states, reward_location, walls_location, maze, learned_policy, 
     return all_steps_to_goal, all_samples, all_cumulative_rewards
 
 
-def plot_results(pvf_all_results, grid_size, reward_location, dimension, discount, num_samples):
+def plot_results(pvf_all_results, grid_size, reward_location, walls_location, dimension, discount, num_samples):
     pvf_mean_cumulative_rewards = []
     pvf_std_cumulative_rewards = []
 
@@ -80,7 +114,7 @@ def plot_results(pvf_all_results, grid_size, reward_location, dimension, discoun
     pvf_std_steps_to_goal = []
 
     for init_state in range(grid_size*grid_size):
-        if init_state != reward_location:
+        if init_state != reward_location and init_state not in walls_location:
             pvf_cumulative_rewards = []
             pvf_steps_to_goal = []
             for k in range(10):
@@ -91,7 +125,7 @@ def plot_results(pvf_all_results, grid_size, reward_location, dimension, discoun
             pvf_mean_steps_to_goal.append(np.mean(pvf_steps_to_goal))
             pvf_std_steps_to_goal.append(np.std(pvf_steps_to_goal))
 
-    fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True)
+    fig, axs = plt.subplots(nrows=2, ncols=2, sharex=True)
 
     ax = axs[0, 0]
     ax.errorbar(sum([range(reward_location), range(grid_size,grid_size*grid_size)],[]),pvf_mean_steps_to_goal, yerr=pvf_std_steps_to_goal, fmt='ro',ecolor='red')
@@ -104,6 +138,7 @@ def plot_results(pvf_all_results, grid_size, reward_location, dimension, discoun
     fig.suptitle('Grid size = ' + str(grid_size) + ', Dimension = ' + str(dimension) + ', Discount =' + str(discount))
     plt.savefig('plots/'+str(grid_size) + 'grid_' + str(dimension) + 'dimension_' + str(discount) + 'discount_' + str(
                num_samples) + 'samples.pdf')
+
 
 if __name__ == "__main__":
     main()

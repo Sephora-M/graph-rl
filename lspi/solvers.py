@@ -76,9 +76,11 @@ class LSTDQSolver(Solver):
         """
         k = policy.basis.size()
         a_mat = np.zeros((k, k))
+        #a_mat = np.random.uniform(-1.0, 1.0, size=(k, k))
         np.fill_diagonal(a_mat, self.precondition_value)
 
         b_vec = np.zeros((k, 1))
+        #b_vec = np.random.uniform(-1.0, 1.0, size=(k, 1))
 
         for sample in data:
             phi_sa = (policy.basis.evaluate(sample.state, sample.action)
