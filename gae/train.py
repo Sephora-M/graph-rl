@@ -16,7 +16,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.metrics import average_precision_score
 
 from optimizer import OptimizerAE, OptimizerVAE
-from input_data import creat_graph, creat_club_graph
+from input_data import creat_graph, creat_club_graph, read_graph
 from model import GCNModelAE, GCNModelVAE
 from preprocessing import preprocess_graph, construct_feed_dict, sparse_to_tuple, mask_test_edges
 
@@ -39,7 +39,8 @@ model_str = FLAGS.model
 #dataset_str = FLAGS.dataset
 
 # Load data
-adj, features, node_colors = creat_graph(5,2)
+#adj, features, node_colors = creat_graph(5,2)
+adj, features, node_colors = read_graph("node2vec/graph/tworooms.edgelist")
 
 # Store original adjacency matrix (without diagonal entries) for later
 adj_orig = adj
@@ -72,9 +73,9 @@ features_nonzero = features[1].shape[0]
 # Create model
 model = None
 if model_str == 'gcn_ae':
-    model = GCNModelAE(placeholders, num_features, features_nonzero)
+    model = GCNModelAE(placeholders, num_features, features_nonzero, FLAGS.hidden1, FLAGS.hidden2, FLAGS.hidden3)
 elif model_str == 'gcn_vae':
-    model = GCNModelVAE(placeholders, num_features, num_nodes, features_nonzero)
+    model = GCNModelVAE(placeholders, num_features, num_nodes, features_nonzero, FLAGS.hidden1, FLAGS.hidden2)
 
 pos_weight = float(adj.shape[0] * adj.shape[0] - adj.sum()) / adj.sum()
 norm = adj.shape[0] * adj.shape[0] / float((adj.shape[0] * adj.shape[0] - adj.sum()) * 2)
@@ -86,14 +87,14 @@ with tf.name_scope('optimizer'):
                           labels=tf.reshape(tf.sparse_tensor_to_dense(placeholders['adj_orig'],
                                                                       validate_indices=False), [-1]),
                           pos_weight=pos_weight,
-                          norm=norm)
+                          norm=norm, learning_rate=FLAGS.learning_rate)
     elif model_str == 'gcn_vae':
         opt = OptimizerVAE(preds=model.reconstructions,
                            labels=tf.reshape(tf.sparse_tensor_to_dense(placeholders['adj_orig'],
                                                                        validate_indices=False), [-1]),
                            model=model, num_nodes=num_nodes,
                            pos_weight=pos_weight,
-                           norm=norm)
+                           norm=norm, learning_rate=FLAGS.learning_rate)
 
 # Initialize session
 sess = tf.Session()
@@ -164,7 +165,7 @@ for epoch in range(FLAGS.epochs):
           "val_ap=", "{:.5f}".format(ap_curr),
           "time=", "{:.5f}".format(time.time() - t))
 #    plt.show()
-print("Optimization Finished!")
+print("GCN Optimization Finished!")
 
 
 roc_score, ap_score, embeddings_test, adj_rec = get_roc_score(test_edges, test_edges_false)
@@ -174,7 +175,7 @@ adj_rec[adj_rec>0]=1
 for i in range (adj_rec.shape[0]):
     adj_rec[i][i] = 0
 print(adj_rec)
-plt.scatter(embeddings_test[:,0],embeddings_test[:,1],c=node_colors)
+plt.scatter(embeddings_test[:,0],embeddings_test[:,1], c=node_colors)
 plt.show()
 
 print('Test ROC score: ' + str(roc_score))

@@ -49,33 +49,72 @@ class Graph():
                 break
         return walk
 
-    def simulate_walks(self, num_walks, walk_length):
+    def node2vec_goal_walk(self, walk_length, start_node, reward_location):
+        '''
+        Simulate a random walk starting from start node.
+        '''
+        G = self.G
+        alias_nodes = self.alias_nodes
+        alias_edges = self.alias_edges
+
+        walk = [start_node]
+        trials = 0
+        max_trials = walk_length * self.num_actions
+
+        while len(walk) < walk_length and trials < max_trials:
+            cur = walk[-1]
+            if cur == reward_location:
+                return walk
+            cur_nbrs = sorted(G.neighbors(cur))
+            if len(cur_nbrs) > 0:
+                if len(walk) == 1:
+                    walk.append(cur_nbrs[alias_draw(alias_nodes[cur][0], alias_nodes[cur][1])])
+                else:
+                    prev = walk[-2]
+                    next = cur_nbrs[alias_draw(alias_edges[(prev, cur)][0],
+                                               alias_edges[(prev, cur)][1])]
+                    if np.random.rand() <= self.transition_probabilities[next]:
+                        walk.append(next)
+                    trials += 1
+            else:
+                break
+
+        if walk[-1] == reward_location:
+            return walk
+        return []
+
+    def simulate_walks(self, num_walks, walk_length, goal_walks=False, reward_location = None):
         '''
         Repeatedly simulate random walks from each node.
         '''
         G = self.G
         walks = []
         nodes = list(G.nodes())
-        print 'Walk iteration:'
+        print('Walk iteration:')
         for walk_iter in range(num_walks):
-            print str(walk_iter + 1), '/', str(num_walks)
+            print(str(walk_iter + 1), '/', str(num_walks))
             random.shuffle(nodes)
             for node in nodes:
                 if self.transition_probabilities[node] > 0:
-                    walks.append(self.node2vec_walk(walk_length=walk_length, start_node=node))
-
+                    if not goal_walks:
+                        walks.append(self.node2vec_walk(walk_length=walk_length, start_node=node))
+                    else:
+                        walk = self.node2vec_goal_walk(walk_length=walk_length, start_node=node,
+                                                       reward_location=reward_location)
+                        if len(walk) > 0:
+                            walks.append(walk)
         return walks
 
     def simulate_ranadom_walks(self, num_walks, walk_length):
         '''
-        Repeatedly simulate random walks from each node.
+        Repeatedly simulate random walks from random nodes.
         '''
         G = self.G
         walks = []
         nodes = list(G.nodes())
-        print 'Walk iteration:'
+        print('Walk iteration:')
         for walk_iter in range(num_walks):
-            print str(walk_iter + 1), '/', str(num_walks)
+            print(str(walk_iter + 1), '/', str(num_walks))
             random.shuffle(nodes)
             node = random.choice(nodes)
             while self.transition_probabilities[node] == 0.:

@@ -39,7 +39,7 @@ class Graph(defaultdict):
         return self.keys()
 
     def adjacency_iter(self):
-        return self.iteritems()
+        return self.items()
 
     def subgraph(self, nodes={}):
         subgraph = Graph()
@@ -125,12 +125,12 @@ class Graph(defaultdict):
 
     def gToDict(self):
         d = {}
-        for k, v in self.iteritems():
+        for k, v in self.items():
             d[k] = v
         return d
 
     def printAdjList(self):
-        for key, value in self.iteritems():
+        for key, value in self.items():
             print (key, ":", value)
 
 

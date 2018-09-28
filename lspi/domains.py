@@ -8,6 +8,7 @@ from random import randint, random
 
 import numpy as np
 
+# from lspi.sample import Sample
 from sample import Sample
 from scipy import sparse
 from pygsp import graphs
@@ -413,7 +414,7 @@ class GridMazeDomain(Domain):
     def learn_graph(self, sample_length, num_samples, sampling_policy):
         samples = []
 
-        for i in xrange(num_samples):
+        for i in range(num_samples):
             sample = self.generate_samples(sample_length, sampling_policy)
             samples.extend(sample)
 
@@ -428,7 +429,7 @@ class GridMazeDomain(Domain):
 
     def generate_samples(self, sample_length, sampling_policy):
         sample = []
-        for i in xrange(sample_length):
+        for i in range(sample_length):
             action = sampling_policy.select_action(self.current_state())
             s = self.apply_action(action)
             sample.append(s)
@@ -653,7 +654,7 @@ class SymmetricMazeDomain(Domain):
 
         self.num_states = 64
 
-        self.rewards_locations = rewards_locations
+        self.reward_location = rewards_locations
 
         self.initial_state = initial_state
 
@@ -676,7 +677,7 @@ class SymmetricMazeDomain(Domain):
     def learn_graph(self, sample_length, num_samples, sampling_policy):
         samples = []
 
-        for i in xrange(num_samples):
+        for i in range(num_samples):
             sample = self.generate_samples(sample_length, sampling_policy)
             samples.extend(sample)
 
@@ -691,7 +692,7 @@ class SymmetricMazeDomain(Domain):
 
     def generate_samples(self, sample_length, sampling_policy):
         sample = []
-        for i in xrange(sample_length):
+        for i in range(sample_length):
             action = sampling_policy.select_action(self.current_state())
             s = self.apply_action(action)
             sample.append(s)
@@ -771,7 +772,7 @@ class SymmetricMazeDomain(Domain):
 
         next_state = np.array([new_location])
 
-        if new_location in self.rewards_locations:
+        if new_location in self.reward_location:
             reward = 100.
             absorb = True
             sample = Sample(self._state.copy(), action, reward, next_state.copy(), absorb)
@@ -877,7 +878,7 @@ class SymmetricMazeDomain(Domain):
                                  + '[0, num_states)')
             if self.transition_probabilities[state[0]] == 0.:
                 raise ValueError('Initial state cannot be an inaccessible state')
-            if state[0] in self.rewards_locations:
+            if state[0] in self.reward_location:
                 raise ValueError('Initial state cannot be an absorbing state')
             self._state = state
 
@@ -901,7 +902,7 @@ class SymmetricMazeDomain(Domain):
 
         random_state = randint(0, self.num_states - 1)
 
-        while self.transition_probabilities[random_state] == 0. or random_state in self.rewards_locations:
+        while self.transition_probabilities[random_state] == 0. or random_state in self.reward_location:
             random_state = randint(0, self.num_states - 1)
 
         return np.array([random_state])

@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-import random, sys, logging
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from multiprocessing import Manager
-from time import time
-from collections import deque
 
-from utils import *
+# from struc2vec.src.algorithms import *
+# from struc2vec.src.algorithms_distances import *
 from algorithms import *
 from algorithms_distances import *
-import graph
 
 
 class Graph():

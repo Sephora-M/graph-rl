@@ -3,10 +3,11 @@ import scipy.sparse as sp
 import numpy as np
 import matplotlib.pyplot as plt
 
-def creat_graph(m1,m2):
+
+def creat_graph(m1, m2):
     m_1 = 2*m1+m2
     m_2 = m1+m2
-    g = nx.barbell_graph(m1,m2)
+    g = nx.barbell_graph(m1, m2)
 
     color = ['b','g','r','y']
     color_1 = color[0]
@@ -44,11 +45,29 @@ def creat_graph(m1,m2):
     
     return adj, features, node_colors
 
-def creat_club_graph():
 
+def creat_club_graph():
     G = nx.karate_club_graph()
     nx.draw(G, with_labels=True)
     adj = nx.adjacency_matrix(G)
     features = np.identity(adj.shape[0])
     plt.show()
+    return adj, features
+
+
+def read_graph(edge_list):
+    '''
+    Reads the input network in networkx.
+    '''
+
+    G = nx.read_edgelist(edge_list, nodetype=int, create_using=nx.DiGraph())
+    for edge in G.edges():
+        G[edge[0]][edge[1]]['weight'] = 1
+
+    G = G.to_undirected()
+
+    adj = nx.adjacency_matrix(G)
+    features = np.identity(adj.shape[0])
+
+    #nx.draw_spectral(G, with_labels=True, node_color=node_colors)
     return adj, features

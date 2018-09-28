@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.optimize as optimization
 from learning_maze import LearningMazeDomain
-import lspi
+from lspi import domains, basis_functions
 import matplotlib.pyplot as plt
 
 dimensions = [4, 6, 10, 20, 30, 40, 50, 60, 70, 80, 90, 99]
@@ -214,8 +214,8 @@ def value_iteration(G, finish_state, obstacles, walls, obstacles_transition_prob
                         max_a = new_v
             diff = diff + abs(V[s] - max_a)
             V[s] = max_a
-    print "number of iterations in Value Iteration:"
-    print iterations
+    print("number of iterations in Value Iteration:")
+    print(iterations)
     return V
 
 
@@ -227,7 +227,7 @@ def example_grid_maze(plotV=True):
     obstacles_location = [14, 13, 24, 23, 29, 28, 39, 38]  # range(height*width)
     walls_location = [50, 51, 52, 53, 54, 55, 56, 74, 75, 76, 77, 78, 79]
     obstacles_transition_probability = .2
-    domain = lspi.domains.GridMazeDomain(height, width, reward_location,
+    domain = domains.GridMazeDomain(height, width, reward_location,
                                          walls_location, obstacles_location, initial_state,
                                          obstacles_transition_probability)
     maze = LearningMazeDomain(domain=domain, num_sample=2000)
@@ -246,7 +246,7 @@ def low_stretch_tree_maze(plotV=True, num_sample=100, computeV=False):
     reward_location = [15]
     obstacles_location = []
     obstacles_transition_probability = .2
-    domain = lspi.domains.SymmetricMazeDomain(rewards_locations=reward_location,
+    domain = domains.SymmetricMazeDomain(rewards_locations=reward_location,
                                               obstacles_location=obstacles_location)
     maze = LearningMazeDomain(domain=domain, num_sample=num_sample)
 
@@ -276,7 +276,7 @@ def tworooms(plotV=True, num_sample=100, computeV=False):
                       90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
                       41, 42, 43, 44, 46, 47, 48, 49]
     obstacles_transition_probability = .2
-    domain = lspi.domains.GridMazeDomain(height, width, reward_location,
+    domain = domains.GridMazeDomain(height, width, reward_location,
                                          walls_location, obstacles_location, initial_state,
                                          obstacles_transition_probability)
     maze = LearningMazeDomain(domain=domain, num_sample=num_sample)
@@ -303,7 +303,7 @@ def oneroom(plotV=True, num_sample=100, computeV=False):
     obstacles_location = []  # range(height*width)
     walls_location = []
     obstacles_transition_probability = .2
-    domain = lspi.domains.GridMazeDomain(height, width, reward_location,
+    domain = domains.GridMazeDomain(height, width, reward_location,
                                          walls_location, obstacles_location, initial_state,
                                          obstacles_transition_probability)
     maze = LearningMazeDomain(domain=domain, num_sample=num_sample)
@@ -336,7 +336,7 @@ def obstacles_room(plotV=True, num_sample=100, computeV=False):
                       9, 19, 29, 39, 49, 59, 69, 79, 89, 99,
                       90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
     obstacles_transition_probability = .2
-    domain = lspi.domains.GridMazeDomain(height, width, reward_location,
+    domain = domains.GridMazeDomain(height, width, reward_location,
                                          walls_location, obstacles_location, initial_state,
                                          obstacles_transition_probability)
     maze = LearningMazeDomain(domain=domain, num_sample=num_sample)
@@ -363,7 +363,7 @@ def compute_ProtoValueBasis(maze, num_basis=30, walk_length=100, num_walks=50, w
         graph = maze.domain.learn_graph(sample_length=walk_length, num_samples=num_walks,
                                         sampling_policy=maze.sampling_policy)
 
-    basis = lspi.basis_functions.ProtoValueBasis(graph, 4, num_basis, lap_type)
+    basis = basis_functions.ProtoValueBasis(graph, 4, num_basis, lap_type)
 
     all_basis = []
 
@@ -382,7 +382,7 @@ def compute_grapheWaveBasis(maze, num_basis=30, walk_length=100, num_walks=50,
     #
     # maze.domain.write_edgelist(graph_edgelist, graph)
 
-    basis = lspi.basis_functions.GraphWaveBasis(graph_edgelist=graph_edgelist, num_actions=4, dimension=num_basis,
+    basis = basis_functions.GraphWaveBasis(graph_edgelist=graph_edgelist, num_actions=4, dimension=num_basis,
                                                 time_pts_range=time_pts_range, taus=taus)
     graph = maze.domain.graph
     all_basis = []
@@ -400,7 +400,7 @@ def compute_grapheWaveBasis(maze, num_basis=30, walk_length=100, num_walks=50,
 
 def compute_struc2VecBasis(maze, dimension=30, walk_length=100, num_walks=50, window_size=10, p=1, q=1, epochs=1,
                            edgelist='node2vec/graph/tworooms.edgelist'):
-    basis = lspi.basis_functions.Struc2vecBasis(graph_edgelist=edgelist, num_actions=4,
+    basis = basis_functions.Struc2vecBasis(graph_edgelist=edgelist, num_actions=4,
                                                 dimension=dimension, walk_length=walk_length, num_walks=num_walks,
                                                 window_size=window_size, epochs=epochs)
 
@@ -420,7 +420,7 @@ def compute_struc2VecBasis(maze, dimension=30, walk_length=100, num_walks=50, wi
 
 def compute_node2VecBasis(maze, dimension=30, walk_length=100, num_walks=50, window_size=10, p=1, q=1, epochs=1,
                           edgelist='node2vec/graph/tworooms.edgelist'):
-    basis = lspi.basis_functions.Node2vecBasis(graph_edgelist=edgelist, num_actions=4,
+    basis = basis_functions.Node2vecBasis(graph_edgelist=edgelist, num_actions=4,
                                                transition_probabilities=maze.domain.transition_probabilities,
                                                dimension=dimension, walk_length=walk_length, num_walks=num_walks,
                                                window_size=window_size, p=p, q=q, epochs=epochs)
