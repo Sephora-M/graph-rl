@@ -1,0 +1,12 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+*temp.py
+*/graphs
+*/plots*
+*random_walks.txt
+/pickles
+*.pickle
+/pyqtgraph
