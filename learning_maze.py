@@ -7,9 +7,9 @@ DEGREE = 3
 DISCOUNT = .8
 EXPLORE = 0
 NUM_SAMPLES = 3000
-LEN_SAMPLE = 100
+LEN_SAMPLE = 500
 MAX_ITERATIONS = 100000
-MAX_STEPS = 100
+MAX_STEPS = 500
 
 
 class LearningMazeDomain():
@@ -190,7 +190,7 @@ class LearningMazeDomain():
 
     def learn_gcn_basis(self, graph_edgelist, dimension, walk_length=30, num_walks=10, time_pts_range=[0, 25],
                               taus='auto', max_iterations=MAX_ITERATIONS, max_steps=NUM_SAMPLES, nb_filters=1,
-                              initial_policy=None, discount=DISCOUNT, explore=EXPLORE, run_simulation=False):
+                              initial_policy=None, discount=DISCOUNT, explore=EXPLORE, run_simulation=False, model_str='gcn_vae',):
 
         # graph = self.domain.learn_graph(sample_length=walk_length, num_samples=num_walks,
         #                                 sampling_policy=self.sampling_policy)
@@ -199,7 +199,7 @@ class LearningMazeDomain():
 
         if initial_policy is None:
             initial_policy = policy.Policy(basis_functions.GCNBasis(graph_edgelist, num_actions=4,
-                                                                             dimension=dimension), discount, explore)
+                                                                             dimension=dimension, model_str='gcn_vae',), discount, explore)
         learned_policy, distances = lspi.learn(self.samples, initial_policy, self.solver,
                                                max_iterations=max_iterations)
 
