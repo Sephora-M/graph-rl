@@ -203,7 +203,7 @@ def value_iteration(G, finish_state, obstacles, walls, obstacles_transition_prob
     while diff > epsilon:
         iterations = iterations + 1
         diff = 0
-        for s in xrange(G.N):
+        for s in range(G.N):
             if s == finish_state:
                 max_a = success_prob[s] * R[s]
             else:
@@ -290,6 +290,42 @@ def tworooms(plotV=True, num_sample=100, computeV=False):
         fig, ax = plt.subplots(1, 1)
         maze.domain.graph.plot_signal(np.array(V), vertex_size=60, ax=ax)
         plt.savefig('graphs/twoRooms_trueV.pdf')
+        plt.close()
+
+    return maze, V
+
+
+def threerooms(plotV=True, num_sample=5000, computeV=False):
+    height = 50
+    width = 100
+    reward_location = 198
+    initial_state = None  # np.array([25])
+    obstacles_location = []  # range(height*width)
+    walls_location = []
+    walls_location.extend(range(100))
+    walls_location.extend(range(4900, 5000))
+    walls_location.extend(range(0, 5000, 100))
+    walls_location.extend(range(99, 5000, 100))
+    walls_location.extend(range(1600, 1670))
+    walls_location.extend(range(1680, 1700))
+    walls_location.extend(range(3200, 3220))
+    walls_location.extend(range(3230, 3300))
+
+    obstacles_transition_probability = .2
+    domain = domains.GridMazeDomain(height, width, reward_location,
+                                         walls_location, obstacles_location, initial_state,
+                                         obstacles_transition_probability)
+    maze = LearningMazeDomain(domain=domain, num_sample=num_sample)
+
+    V = None
+    if computeV:
+        V = value_iteration(maze.domain.graph, reward_location, obstacles_location, walls_location,
+                        obstacles_transition_probability)
+
+    if plotV:
+        fig, ax = plt.subplots(1, 1)
+        maze.domain.graph.plot_signal(np.array(V), vertex_size=60, ax=ax)
+        plt.savefig('graphs/threeRooms_trueV.pdf')
         plt.close()
 
     return maze, V

@@ -70,7 +70,7 @@ class Graph():
         unnormalized_probs = []
         for dst_nbr in sorted(G.neighbors(dst)):
             if dst_nbr == src:
-                unnormalized_probs.append(G[dst][dst_nbr]['weight'] / p)
+                unnormalized_probs.append(float(G[dst][dst_nbr]['weight']) / p)
             elif G.has_edge(dst_nbr, src):
                 unnormalized_probs.append(G[dst][dst_nbr]['weight'])
             else:
