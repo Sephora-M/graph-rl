@@ -20,16 +20,19 @@ class LearningMazeDomain():
 
         self.sampling_policy = policy.Policy(basis_functions.FakeBasis(4), DISCOUNT, 1)
 
+        self.num_samples = num_sample
+        self.length_samples = length_sample
         self.samples = []
-
-        for i in range(num_sample):
-            sample = self.domain.generate_samples(length_sample, self.sampling_policy)
-            self.samples.extend(sample)
 
         self.random_policy_cumulative_rewards = np.sum([sample.reward for
                                                         sample in self.samples])
 
         self.solver = solvers.LSTDQSolver()
+
+    def compute_samples(self):
+        for i in range(self.num_samples):
+            sample = self.domain.generate_samples(self.length_samples, self.sampling_policy)
+            self.samples.extend(sample)
 
     def learn_proto_values_basis(self, num_basis=NUM_BASIS,  walk_length=30, num_walks=10, discount=DISCOUNT,
                                  explore=EXPLORE, max_iterations=MAX_ITERATIONS, max_steps=NUM_SAMPLES,
