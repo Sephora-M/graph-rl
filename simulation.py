@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import sys
 from optimise import tworooms, obstacles_room, low_stretch_tree_maze, oneroom, threerooms
 
-num_samples = 1000
+num_samples = 5000
 
 DISCOUNT = [0.8]
 GRID_SIZES = [100]
@@ -13,7 +13,7 @@ WINDOW_SIZES = [10]
 window_size = 10
 discount = 0.8
 MAX_STEPS = 5000
-K = 3
+K = 1
 p = 1
 Q = [4]
 wl = 100

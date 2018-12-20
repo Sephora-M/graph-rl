@@ -12,7 +12,7 @@ K = 20
 
 
 def main(folder='plots/two_room/'):
-    maze, V = tworooms(True, computeV=True, num_sample=1)
+    maze, V = threerooms(True, computeV=True, num_sample=1)
     fig, ax = plt.subplots(1, 1)
     maze.domain.graph.plot_signal(maze.domain.transition_probabilities, vertex_size=60, ax=ax)
     plt.savefig(folder + 'transition_prob')
@@ -41,11 +41,11 @@ def main(folder='plots/two_room/'):
         for k in range(K):
             pvfs_basis = compute_ProtoValueBasis(maze, num_basis=d, walk_length=wl, num_walks=nw)
             n2v_basis = compute_node2VecBasis(maze, dimension=d_gw, walk_length=wl, num_walks=nw, window_size=10,
-                                              edgelist='node2vec/graph/tworooms_all_nodes.edgelist')
+                                              edgelist='node2vec/graph/threerooms.edgelist')
             gw_basis = compute_grapheWaveBasis(maze, num_basis=d_gw, walk_length=wl, num_walks=nw,
-                                               graph_edgelist='node2vec/graph/tworooms_all_nodes.edgelist')
+                                               graph_edgelist='node2vec/graph/threerooms.edgelist')
             s2v_basis = compute_struc2VecBasis(maze, dimension=d_gw, walk_length=wl, num_walks=nw, window_size=10,
-                                               edgelist='node2vec/graph/tworooms_all_nodes.edgelist')
+                                               edgelist='node2vec/graph/threerooms.edgelist')
             pvf_params, pvf_error = least_squares(pvfs_basis, V, np.random.uniform(-1.0, 1.0, size=(d,)))
             n2v_params, n2v_error = least_squares(n2v_basis, V, np.random.uniform(-1.0, 1.0, size=(d_gw,)))
             gw_params, gw_error = least_squares(gw_basis, V, np.random.uniform(-1.0, 1.0, size=(d_gw,)))
@@ -454,13 +454,12 @@ def compute_struc2VecBasis(maze, dimension=30, walk_length=100, num_walks=50, wi
     return all_basis
 
 
-def compute_node2VecBasis(maze, dimension=30, walk_length=100, num_walks=50, window_size=10, p=1, q=1, epochs=1,
+def compute_node2VecBasis(maze, dimension=30, reward_location=198, walk_length=100, num_walks=50, window_size=10, p=1, q=1, epochs=1,
                           edgelist='node2vec/graph/tworooms.edgelist'):
-    basis = basis_functions.Node2vecBasis(graph_edgelist=edgelist, num_actions=4,
+    basis = basis_functions.Node2vecBasis(graph_edgelist=edgelist, num_actions=4, reward_locations=reward_location,
                                                transition_probabilities=maze.domain.transition_probabilities,
                                                dimension=dimension, walk_length=walk_length, num_walks=num_walks,
                                                window_size=window_size, p=p, q=q, epochs=epochs)
-
     all_basis = []
 
     for state in range(maze.domain.graph.N):

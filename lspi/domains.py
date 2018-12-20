@@ -361,7 +361,7 @@ class GridMazeDomain(Domain):
     __action_names = ['right', 'up', 'left', 'down']
 
     def __init__(self, height, width, reward_location, walls_location, obstacles_location, initial_state=None,
-                 obstacles_transition_probability=.2, success_probability=.9):
+                 obstacles_transition_probability=.2, success_probability=1.):
         """Initialize GridMazeDomain.
 
         Parameters
@@ -506,7 +506,7 @@ class GridMazeDomain(Domain):
 
         # in the case of failing action
         if new_location == self._state[0] or random() > self.transition_probabilities[new_location]:
-            return Sample(self._state.copy(), action, 0., self._state.copy())
+            return Sample(self._state.copy(), action, -10., self._state.copy())
 
         next_state = np.array([new_location])
 
