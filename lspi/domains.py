@@ -361,7 +361,11 @@ class GridMazeDomain(Domain):
     __action_names = ['right', 'up', 'left', 'down']
 
     def __init__(self, height, width, reward_location, walls_location, obstacles_location, initial_state=None,
+<<<<<<< Updated upstream
                  obstacles_transition_probability=.2, success_probability=1.):
+=======
+                 obstacles_transition_probability=.2, success_probability=9.):
+>>>>>>> Stashed changes
         """Initialize GridMazeDomain.
 
         Parameters

@@ -782,7 +782,7 @@ class Node2vecBasis(BasisFunction):
 
     """
 
-    def __init__(self, graph_edgelist, num_actions, transition_probabilities, dimension, reward_locations,
+    def __init__(self, graph_edgelist, num_actions, transition_probabilities, dimension,
                  walk_length=100, num_walks=50, window_size=10, p=1, q=1, epochs=1, workers=8):
         """Initialize ExactBasis."""
         if graph_edgelist is None:
