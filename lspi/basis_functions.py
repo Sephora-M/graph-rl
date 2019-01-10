@@ -806,7 +806,7 @@ class Node2vecBasis(BasisFunction):
 
         self.G = node2vec.Graph(self._nxgraph, False, self._p, self._q, transition_probabilities)
         self.G.preprocess_transition_probs()
-        walks = self.G.simulate_walks(self._num_walks, self._walk_length)#, True, reward_locations)
+        walks = self.G.simulate_random_walks(self._num_walks, self._walk_length)#, True, reward_locations)
         self.model = self.learn_embeddings(walks)
 
     def size(self):

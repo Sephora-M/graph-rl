@@ -4,19 +4,20 @@ from learning_maze import LearningMazeDomain
 from lspi import domains, basis_functions
 import matplotlib.pyplot as plt
 
-dimensions = [4, 6, 10, 20, 30, 40, 50, 60, 70, 80, 90, 99]
-plot_se_dims = [30, 50, 80]
+dimensions = [30, 50, 100, 500]
+plot_se_dims = []
 wl = 100
-nw = 100
-K = 20
+nw = 5000
+num_states=5000
+K = 2
 
 
 def main(folder='plots/two_room/'):
     maze, V = threerooms(True, computeV=True, num_sample=1)
-    fig, ax = plt.subplots(1, 1)
-    maze.domain.graph.plot_signal(maze.domain.transition_probabilities, vertex_size=60, ax=ax)
-    plt.savefig(folder + 'transition_prob')
-    plt.close()
+    # fig, ax = plt.subplots(1, 1)
+    # maze.domain.graph.plot_signal(maze.domain.transition_probabilities, vertex_size=60, ax=ax)
+    # plt.savefig(folder + 'transition_prob')
+    # plt.close()
 
     pvfs_mean_errors = []
     n2v_mean_errors = []
@@ -40,37 +41,37 @@ def main(folder='plots/two_room/'):
 
         for k in range(K):
             pvfs_basis = compute_ProtoValueBasis(maze, num_basis=d, walk_length=wl, num_walks=nw)
-            n2v_basis = compute_node2VecBasis(maze, dimension=d_gw, walk_length=wl, num_walks=nw, window_size=10,
+            n2v_basis = compute_node2VecBasis(maze, dimension=d_gw, walk_length=wl, num_walks=int(nw/num_states), window_size=10,
                                               edgelist='node2vec/graph/threerooms.edgelist')
-            gw_basis = compute_grapheWaveBasis(maze, num_basis=d_gw, walk_length=wl, num_walks=nw,
-                                               graph_edgelist='node2vec/graph/threerooms.edgelist')
-            s2v_basis = compute_struc2VecBasis(maze, dimension=d_gw, walk_length=wl, num_walks=nw, window_size=10,
-                                               edgelist='node2vec/graph/threerooms.edgelist')
+            # gw_basis = compute_grapheWaveBasis(maze, num_basis=d_gw, walk_length=wl, num_walks=nw,
+            #                                    graph_edgelist='node2vec/graph/threerooms.edgelist')
+            # s2v_basis = compute_struc2VecBasis(maze, dimension=d_gw, walk_length=wl, num_walks=nw, window_size=10,
+            #                                    edgelist='node2vec/graph/threerooms.edgelist')
             pvf_params, pvf_error = least_squares(pvfs_basis, V, np.random.uniform(-1.0, 1.0, size=(d,)))
             n2v_params, n2v_error = least_squares(n2v_basis, V, np.random.uniform(-1.0, 1.0, size=(d_gw,)))
-            gw_params, gw_error = least_squares(gw_basis, V, np.random.uniform(-1.0, 1.0, size=(d_gw,)))
-            s2v_params, s2v_error = least_squares(s2v_basis, V, np.random.uniform(-1.0, 1.0, size=(d_gw,)))
+            # gw_params, gw_error = least_squares(gw_basis, V, np.random.uniform(-1.0, 1.0, size=(d_gw,)))
+            # s2v_params, s2v_error = least_squares(s2v_basis, V, np.random.uniform(-1.0, 1.0, size=(d_gw,)))
 
             pvfs_errors.append(pvf_error)
             n2v_errors.append(n2v_error)
-            gw_errors.append(gw_error)
-            s2v_errors.append(s2v_error)
+            # gw_errors.append(gw_error)
+            # s2v_errors.append(s2v_error)
 
         pvfs_mean_errors.append(np.mean(pvfs_errors))
         n2v_mean_errors.append(np.mean(n2v_errors))
-        gw_mean_errors.append(np.mean(gw_errors))
-        s2v_mean_errors.append(np.mean(s2v_errors))
+        # gw_mean_errors.append(np.mean(gw_errors))
+        # s2v_mean_errors.append(np.mean(s2v_errors))
 
         pvfs_std_errors.append(np.std(pvfs_errors))
         n2v_std_errors.append(np.std(n2v_errors))
-        gw_std_errors.append(np.std(gw_errors))
-        s2v_std_errors.append(np.std(s2v_errors))
+        # gw_std_errors.append(np.std(gw_errors))
+        # s2v_std_errors.append(np.std(s2v_errors))
 
         if d in plot_se_dims:
             pvf_se = np.square(V - np.matmul(pvfs_basis, pvf_params))
             n2v_se = np.square(V - np.matmul(n2v_basis, n2v_params))
-            gw_se = np.square(V - np.matmul(gw_basis, gw_params))
-            s2v_se = np.square(V - np.matmul(s2v_basis, s2v_params))
+            # gw_se = np.square(V - np.matmul(gw_basis, gw_params))
+            # s2v_se = np.square(V - np.matmul(s2v_basis, s2v_params))
 
             fig, ax = plt.subplots(1, 1)
             maze.domain.graph.plot_signal(pvf_se, vertex_size=60, ax=ax)
@@ -82,20 +83,20 @@ def main(folder='plots/two_room/'):
             plt.savefig(folder + 'dim'+str(d)+'/n2v_SE')
             plt.close()
 
-            fig, ax = plt.subplots(1, 1)
-            maze.domain.graph.plot_signal(gw_se, vertex_size=60, ax=ax)
-            plt.savefig(folder + 'dim'+str(d)+'/gw_SE')
-            plt.close()
-
-            fig, ax = plt.subplots(1, 1)
-            maze.domain.graph.plot_signal(s2v_se, vertex_size=60, ax=ax)
-            plt.savefig(folder + 'dim'+str(d)+'/s2v_SE')
-            plt.close()
+            # fig, ax = plt.subplots(1, 1)
+            # maze.domain.graph.plot_signal(gw_se, vertex_size=60, ax=ax)
+            # plt.savefig(folder + 'dim'+str(d)+'/gw_SE')
+            # plt.close()
+            #
+            # fig, ax = plt.subplots(1, 1)
+            # maze.domain.graph.plot_signal(s2v_se, vertex_size=60, ax=ax)
+            # plt.savefig(folder + 'dim'+str(d)+'/s2v_SE')
+            # plt.close()
 
             plot_values(maze.domain.graph, pvfs_basis, pvf_params, save=True, file_name=folder + 'dim'+str(d)+'/pvf_approx_v.pdf')
             plot_values(maze.domain.graph, n2v_basis, n2v_params, save=True, file_name=folder + 'dim'+str(d)+'/n2v_approx_v.pdf')
-            plot_values(maze.domain.graph, gw_basis, gw_params, save=True, file_name=folder + 'dim'+str(d)+'/gw_approx_v.pdf')
-            plot_values(maze.domain.graph, s2v_basis, s2v_params, save=True, file_name=folder + 'dim'+str(d)+'/s2v_approx_v.pdf')
+            # plot_values(maze.domain.graph, gw_basis, gw_params, save=True, file_name=folder + 'dim'+str(d)+'/gw_approx_v.pdf')
+            # plot_values(maze.domain.graph, s2v_basis, s2v_params, save=True, file_name=folder + 'dim'+str(d)+'/s2v_approx_v.pdf')
 
     return pvfs_mean_errors, n2v_mean_errors, gw_mean_errors, s2v_mean_errors, pvfs_std_errors, n2v_std_errors, gw_std_errors, s2v_std_errors
 
@@ -113,8 +114,8 @@ def plot_errors(folder='plots/two_rooms/'):
 
     plt.errorbar(dimensions, n2v_mean_errors, yerr=n2v_std_errors, fmt='b', ecolor='blue', label='n2v')
     plt.errorbar(dimensions, pvfs_mean_errors, yerr=pvfs_std_errors, fmt='g', ecolor='green', label='pvf')
-    plt.errorbar(dimensions, s2v_mean_errors, yerr=s2v_std_errors, fmt='c', ecolor='cyan', label='s2v')
-    plt.errorbar(dimensions, gw_mean_errors, yerr=gw_std_errors, fmt='m', ecolor='magenta', label='gw')
+    # plt.errorbar(dimensions, s2v_mean_errors, yerr=s2v_std_errors, fmt='c', ecolor='cyan', label='s2v')
+    # plt.errorbar(dimensions, gw_mean_errors, yerr=gw_std_errors, fmt='m', ecolor='magenta', label='gw')
     plt.legend()
     plt.suptitle('Mean Square Error')
     plt.savefig(folder + 'all_MSE.pdf')

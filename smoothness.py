@@ -3,59 +3,80 @@ import scipy.optimize as optimization
 from learning_maze import LearningMazeDomain
 from lspi import domains, basis_functions
 import matplotlib.pyplot as plt
+import pickle
 
-dimensions = [4, 6, 10, 20, 30, 40, 50, 60, 70, 80, 90, 99]
-plot_se_dims = [30, 50, 80]
-wl = 10
-nw = 100
-K = 5
+dimensions = [30, 50, 100, 500]
+plot_se_dims = []
+wl = 100
+nw = 500
+K = 3
+DISCOUNT = 0.9
+environment_name = 'threerooms'
 
 
 def main(folder):
-    maze, V = obstacles_room(True, computeV=True, num_sample=1)
+    maze, V = threerooms(False, computeV=True, num_sample=1)
     # fig, ax = plt.subplots(1, 1)
     # maze.domain.graph.plot_signal(maze.domain.transition_probabilities, vertex_size=60, ax=ax)
     # plt.savefig(folder + 'transition_prob')
     # plt.close()
 
     pvfs_mean_errors = []
-    pvfsW_mean_errors = []
+    # pvfsW_mean_errors = []
     n2v_mean_errors = []
 
     pvfs_std_errors = []
-    pvfsW_std_errors = []
+    # pvfsW_std_errors = []
     n2v_std_errors = []
 
     for d in dimensions:
+        print('Dimension %d ' % d)
         pvfs_errors = []
-        pvfsW_errors = []
+        # pvfsW_errors = []
         n2v_errors = []
 
         for k in range(K):
+            print('computing %d th run' % k)
+            print('node2vec')
+            n2v_basis = compute_node2VecBasis(maze, dimension=d, walk_length=wl, num_walks=nw, window_size=10,
+                                              edgelist='node2vec/graph/threerooms.edgelist')
+            print('pvf')
             pvfs_basis = compute_ProtoValueBasis(maze, num_basis=d, walk_length=wl, num_walks=nw)
-            pvfsW_basis = compute_ProtoValueBasis(maze, num_basis=d, walk_length=wl, num_walks=nw, weighted_graph=True)
-            n2v_basis = compute_node2VecBasis(maze, dimension=d, walk_length=wl, num_walks=int(nw/maze.domain.graph.N), window_size=10,
-                                              edgelist='node2vec/graph/oneroom_all_nodes.edgelist')
+            # pvfsW_basis = compute_ProtoValueBasis(maze, num_basis=d, walk_length=wl, num_walks=nw, weighted_graph=True)
+            # n2v_basis = compute_node2VecBasis(maze, dimension=d, walk_length=wl, num_walks=int(nw/maze.domain.graph.N), window_size=10,
+            #                                   edgelist='node2vec/graph/threerooms.edgelist')
+
 
             pvf_params, pvf_error = least_squares(pvfs_basis, V, np.random.uniform(-1.0, 1.0, size=(d,)))
-            pvfW_params, pvfW_error = least_squares(pvfsW_basis, V, np.random.uniform(-1.0, 1.0, size=(d,)))
+            # pvfW_params, pvfW_error = least_squares(pvfsW_basis, V, np.random.uniform(-1.0, 1.0, size=(d,)))
             n2v_params, n2v_error = least_squares(n2v_basis, V, np.random.uniform(-1.0, 1.0, size=(d,)))
 
             pvfs_errors.append(pvf_error)
-            pvfsW_errors.append(pvfW_error)
+            # pvfsW_errors.append(pvfW_error)
             n2v_errors.append(n2v_error)
 
         pvfs_mean_errors.append(np.mean(pvfs_errors))
-        pvfsW_mean_errors.append(np.mean(pvfsW_errors))
+        # pvfsW_mean_errors.append(np.mean(pvfsW_errors))
         n2v_mean_errors.append(np.mean(n2v_errors))
 
         pvfs_std_errors.append(np.std(pvfs_errors))
-        pvfsW_std_errors.append(np.std(pvfsW_errors))
+        # pvfsW_std_errors.append(np.std(pvfsW_errors))
         n2v_std_errors.append(np.std(n2v_errors))
+
+
+        n2v_pickle = open(
+            'pickles/n2v_' + environment_name + '_' + str(DISCOUNT) + 'discount.pkl', 'wb')
+        pickle.dump({'mean': n2v_mean_errors, 'std': n2v_std_errors}, n2v_pickle)
+        n2v_pickle.close()
+
+        pvf_pickle = open(
+            'pickles/pvf_' + environment_name + '_' + str(DISCOUNT) + 'discount.pkl', 'wb')
+        pickle.dump({'mean': pvfs_mean_errors, 'std': pvfs_std_errors}, pvf_pickle)
+        pvf_pickle.close()
 
         if d in plot_se_dims:
             pvf_se = np.square(V - np.matmul(pvfs_basis, pvf_params))
-            pvfW_se = np.square(V - np.matmul(pvfsW_basis, pvfW_params))
+            # pvfW_se = np.square(V - np.matmul(pvfsW_basis, pvfW_params))
             n2v_se = np.square(V - np.matmul(n2v_basis, n2v_params))
 
             fig, ax = plt.subplots(1, 1)
@@ -63,10 +84,10 @@ def main(folder):
             plt.savefig(folder + 'dim'+str(d)+'/pvf_SE')
             plt.close()
 
-            fig, ax = plt.subplots(1, 1)
-            maze.domain.graph.plot_signal(pvfW_se, vertex_size=60, ax=ax)
-            plt.savefig(folder + 'dim'+str(d)+'/pvfW_SE')
-            plt.close()
+            # fig, ax = plt.subplots(1, 1)
+            # maze.domain.graph.plot_signal(pvfW_se, vertex_size=60, ax=ax)
+            # plt.savefig(folder + 'dim'+str(d)+'/pvfW_SE')
+            # plt.close()
 
             fig, ax = plt.subplots(1, 1)
             maze.domain.graph.plot_signal(n2v_se, vertex_size=60, ax=ax)
@@ -74,13 +95,13 @@ def main(folder):
             plt.close()
 
             plot_values(maze.domain.graph, pvfs_basis, pvf_params, save=True, file_name=folder + 'dim'+str(d)+'/pvf_approx_v.pdf')
-            plot_values(maze.domain.graph, pvfsW_basis, pvfW_params, save=True, file_name=folder + 'dim'+str(d)+'/pvfW_approx_v.pdf')
+            # plot_values(maze.domain.graph, pvfsW_basis, pvfW_params, save=True, file_name=folder + 'dim'+str(d)+'/pvfW_approx_v.pdf')
             plot_values(maze.domain.graph, n2v_basis, n2v_params, save=True, file_name=folder + 'dim'+str(d)+'/n2v_approx_v.pdf')
 
-    return pvfs_mean_errors, pvfsW_mean_errors, n2v_mean_errors, pvfs_std_errors, pvfsW_std_errors, n2v_std_errors
+    # return pvfs_mean_errors, pvfsW_mean_errors, n2v_mean_errors, pvfs_std_errors, pvfsW_std_errors, n2v_std_errors
 
 
-def plot_errors(folder='plots/obstacles_room/'):
+def plot_errors(folder='plots/three_rooms/'):
     # plot approx values on a grid
     # plot the MSE on the grid
     # try ploting the actions
@@ -166,7 +187,7 @@ def value_iteration(G, finish_state, obstacles, walls, obstacles_transition_prob
     V = [0] * G.N
     R = [0] * G.N
     R[finish_state] = 100
-    gamma = 0.8
+    gamma = 0.9
     success_prob = [.9] * G.N
     for i in obstacles:
         success_prob[i] = obstacles_transition_probability
