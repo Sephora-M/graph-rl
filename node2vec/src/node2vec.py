@@ -69,7 +69,8 @@ class Graph():
         for walk_iter in range(num_walks):
             node = np.random.choice(nodes)
             while self.transition_probabilities[node] == 0:
-                walks.append(self.node2vec_walk(walk_length=walk_length, start_node=node))
+                node = np.random.choice(nodes)
+            walks.append(self.node2vec_walk(walk_length=walk_length, start_node=node))
         return walks
 
     def get_alias_edge(self, src, dst):

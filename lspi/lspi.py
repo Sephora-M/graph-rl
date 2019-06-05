@@ -53,6 +53,7 @@ def learn(data, initial_policy, solver, epsilon=10**-5, max_iterations=10):
     if max_iterations <= 0:
         raise ValueError('max_iterations must be > 0: %d' % max_iterations)
 
+    print('lspi learn: num samples %d' % len(data))
     # this is just to make sure that changing the weight vector doesn't
     # affect the original policy weights
     curr_policy = copy(initial_policy)
@@ -67,5 +68,8 @@ def learn(data, initial_policy, solver, epsilon=10**-5, max_iterations=10):
         distance = np.linalg.norm(new_weights - curr_policy.weights)
         distances.append(distance)
         curr_policy.weights = new_weights
+
+    if iteration >= max_iterations:
+        print("LSPI: reached max iterations!")
 
     return curr_policy, distances

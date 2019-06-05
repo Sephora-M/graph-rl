@@ -4,16 +4,16 @@ from learning_maze import LearningMazeDomain
 from lspi import domains, basis_functions
 import matplotlib.pyplot as plt
 
-dimensions = [30, 50, 100, 500]
+dimensions = [30, 50, 100, 200, 300, 500]
 plot_se_dims = []
 wl = 100
 nw = 5000
-num_states=5000
+num_states = 5000
 K = 2
 
 
-def main(folder='plots/two_room/'):
-    maze, V = threerooms(True, computeV=True, num_sample=1)
+def main(folder='plots/three_room/'):
+    maze, V = threerooms(False, computeV=True, num_sample=1)
     # fig, ax = plt.subplots(1, 1)
     # maze.domain.graph.plot_signal(maze.domain.transition_probabilities, vertex_size=60, ax=ax)
     # plt.savefig(folder + 'transition_prob')
@@ -243,13 +243,13 @@ def example_grid_maze(plotV=True):
     return maze, V
 
 
-def low_stretch_tree_maze(plotV=True, num_sample=100, computeV=False):
+def low_stretch_tree_maze(plotV=True, num_sample=100, length_sample=100, computeV=False):
     reward_location = [15]
     obstacles_location = []
     obstacles_transition_probability = .2
     domain = domains.SymmetricMazeDomain(rewards_locations=reward_location,
                                               obstacles_location=obstacles_location)
-    maze = LearningMazeDomain(domain=domain, num_sample=num_sample)
+    maze = LearningMazeDomain(domain=domain, num_sample=num_sample, length_sample=length_sample)
 
     V = None
     if computeV:
@@ -265,7 +265,7 @@ def low_stretch_tree_maze(plotV=True, num_sample=100, computeV=False):
     return maze, V
 
 
-def tworooms(plotV=True, num_sample=100, computeV=False):
+def tworooms(plotV=True, num_sample=100, length_sample=100, computeV=False):
     height = 10
     width = 10
     reward_location = 18
@@ -280,12 +280,12 @@ def tworooms(plotV=True, num_sample=100, computeV=False):
     domain = domains.GridMazeDomain(height, width, reward_location,
                                          walls_location, obstacles_location, initial_state,
                                          obstacles_transition_probability)
-    maze = LearningMazeDomain(domain=domain, num_sample=num_sample)
+    maze = LearningMazeDomain(domain=domain, num_sample=num_sample, length_sample=length_sample)
 
     V = None
     if computeV:
         V = value_iteration(maze.domain.graph, reward_location, obstacles_location, walls_location,
-                        obstacles_transition_probability)
+                            obstacles_transition_probability)
 
     if plotV:
         fig, ax = plt.subplots(1, 1)
@@ -296,7 +296,7 @@ def tworooms(plotV=True, num_sample=100, computeV=False):
     return maze, V
 
 
-def threerooms(plotV=True, num_sample=5000, computeV=False):
+def threerooms(plotV=True, num_sample=5000, length_sample=100, computeV=False):
     height = 50
     width = 100
     reward_location = 198
@@ -316,7 +316,7 @@ def threerooms(plotV=True, num_sample=5000, computeV=False):
     domain = domains.GridMazeDomain(height, width, reward_location,
                                          walls_location, obstacles_location, initial_state,
                                          obstacles_transition_probability)
-    maze = LearningMazeDomain(domain=domain, num_sample=num_sample)
+    maze = LearningMazeDomain(domain=domain, num_sample=num_sample, length_sample=length_sample)
 
     V = None
     if computeV:
@@ -332,7 +332,7 @@ def threerooms(plotV=True, num_sample=5000, computeV=False):
     return maze, V
 
 
-def oneroom(plotV=True, num_sample=100, computeV=False):
+def oneroom(plotV=True, num_sample=100, length_sample=100, computeV=False):
     height = 10
     width = 10
     reward_location = 9
@@ -343,7 +343,7 @@ def oneroom(plotV=True, num_sample=100, computeV=False):
     domain = domains.GridMazeDomain(height, width, reward_location,
                                          walls_location, obstacles_location, initial_state,
                                          obstacles_transition_probability)
-    maze = LearningMazeDomain(domain=domain, num_sample=num_sample)
+    maze = LearningMazeDomain(domain=domain, num_sample=num_sample, length_sample=length_sample)
 
     V = None
     if computeV:
@@ -359,7 +359,7 @@ def oneroom(plotV=True, num_sample=100, computeV=False):
     return maze, V
 
 
-def obstacles_room(plotV=True, num_sample=100, computeV=False):
+def obstacles_room(plotV=True, num_sample=100, length_sample=100, computeV=False):
     height = 10
     width = 10
     reward_location = 18
@@ -376,7 +376,7 @@ def obstacles_room(plotV=True, num_sample=100, computeV=False):
     domain = domains.GridMazeDomain(height, width, reward_location,
                                          walls_location, obstacles_location, initial_state,
                                          obstacles_transition_probability)
-    maze = LearningMazeDomain(domain=domain, num_sample=num_sample)
+    maze = LearningMazeDomain(domain=domain, num_sample=num_sample, length_sample=length_sample)
 
     V = None
     if computeV:
@@ -408,8 +408,8 @@ def compute_ProtoValueBasis(maze, num_basis=30, walk_length=100, num_walks=50, w
         # if maze.domain.transition_probabilities[state] == 0.:
         #     all_basis.append([0] * num_basis)
         # else:
-        all_basis.append(basis.graph.U[state, 1:basis.num_laplacian_eigenvectors + 1])
-
+        # all_basis.append(basis.graph.U[state, 1:basis.num_laplacian_eigenvectors + 1])
+        all_basis.append(basis.graph.L[state, 1:basis.num_laplacian_eigenvectors + 1].toarray()[0])
     return all_basis
 
 
@@ -457,7 +457,7 @@ def compute_struc2VecBasis(maze, dimension=30, walk_length=100, num_walks=50, wi
 
 def compute_node2VecBasis(maze, dimension=30, reward_location=198, walk_length=100, num_walks=50, window_size=10, p=1, q=1, epochs=1,
                           edgelist='node2vec/graph/tworooms.edgelist'):
-    basis = basis_functions.Node2vecBasis(graph_edgelist=edgelist, num_actions=4, reward_locations=reward_location,
+    basis = basis_functions.Node2vecBasis(graph_edgelist=edgelist, num_actions=4,
                                                transition_probabilities=maze.domain.transition_probabilities,
                                                dimension=dimension, walk_length=walk_length, num_walks=num_walks,
                                                window_size=window_size, p=p, q=q, epochs=epochs)

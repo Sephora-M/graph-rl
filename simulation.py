@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import sys
 from optimise import tworooms, obstacles_room, low_stretch_tree_maze, oneroom, threerooms
 
-num_samples = 5000
 
 DISCOUNT = [0.8]
 GRID_SIZES = [100]
@@ -12,18 +11,18 @@ grid_size = 10
 WINDOW_SIZES = [10]
 window_size = 10
 discount = 0.8
-MAX_STEPS = 5000
+MAX_STEPS = 100
 K = 1
 p = 1
 Q = [4]
-wl = 100
-nw = 5000
+wl = 50
+nw = 100
 
 
 def run_experiment(environment_name, environment, edge_lisit, num_states, reward_location, walls_location, DIMENSION,
-                   gcn=False, n2v=True, pvf=False, gw=False, s2v=False):
+                   gcn=False, n2v=True, pvf=True, gw=False, s2v=False):
     print('>>>>>>>>>>>>>>> ENVIRONMENT: ' + environment_name)
-    maze, _ = environment(False, num_samples)
+    maze, _ = environment(False, nw, wl)
     for q in Q:
         n2v_mean_steps_to_goal = []
         pvf_mean_steps_to_goal = []
@@ -142,14 +141,14 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
 
                 if n2v:
                     d_n2v_mean_cumul_reward.append(n2v_all_mean_cumulative_rewards)
-                    print("n2v mean cumul reward" + n2v_all_mean_cumulative_rewards)
+                    print("n2v mean cumul reward " + str(n2v_all_mean_cumulative_rewards))
                     d_n2v_mean_steps_to_goal.append(n2v_all_mean_steps_to_goal)
-                    print("n2v mean steps to goal" + n2v_all_mean_steps_to_goal)
+                    print("n2v mean steps to goal " + str(n2v_all_mean_steps_to_goal))
                 if pvf:
                     d_pvf_mean_cumul_reward.append(pvf_all_mean_cumulative_rewards)
                     d_pvf_mean_steps_to_goal.append(pvf_all_mean_steps_to_goal)
-                    print("pvf mean cumul reward" + pvf_all_mean_cumulative_rewards)
-                    print("pvf mean steps to goal" + pvf_all_mean_steps_to_goal)
+                    print("pvf mean cumul reward" + str(pvf_all_mean_cumulative_rewards))
+                    print("pvf mean steps to goal" + str(pvf_all_mean_steps_to_goal))
                 if s2v:
                     d_s2v_mean_cumul_reward.append(s2v_all_mean_cumulative_rewards)
                     d_s2v_mean_steps_to_goal.append(s2v_all_mean_steps_to_goal)
@@ -191,71 +190,70 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
                 gcn_std_cumul_reward.append(np.std(d_gcn_mean_cumul_reward))
 
 
-            # plot_results(n2v_all_results, pvf_all_results, grid_size, reward_location, walls_location, dimension, discount, num_samples)
+            # plot_results(n2v_all_results, pvf_all_results, grid_size, reward_location, walls_location, dimension, discount, nw)
 
-        # fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True)
-        # ax = axs[0]
-        # if n2v:
-        #     ax.errorbar(DIMENSION, n2v_mean_steps_to_goal, yerr=n2v_std_steps_to_goal, fmt='b', ecolor='blue', label='n2v')
-        # if pvf:
-        #     ax.errorbar(DIMENSION, pvf_mean_steps_to_goal, yerr=pvf_std_steps_to_goal, fmt='g', ecolor='green', label='pvf')
-        # if s2v:
-        #     ax.errorbar(DIMENSION, s2v_mean_steps_to_goal, yerr=s2v_std_steps_to_goal, fmt='c', ecolor='cyan', label='s2v')
-        # if gcn:
-        #     ax.errorbar(DIMENSION, gcn_mean_steps_to_goal, yerr=gcn_std_steps_to_goal, fmt='m', ecolor='magenta', label='gcn')
-        # if gw:
-        #     ax.errorbar(DIMENSION, gw_mean_steps_to_goal, yerr=gw_std_steps_to_goal, fmt='k', ecolor='black', label='gw')
+        fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True)
+        ax = axs[0]
+        if n2v:
+            ax.errorbar(DIMENSION, n2v_mean_steps_to_goal, yerr=n2v_std_steps_to_goal, fmt='b', ecolor='blue', label='n2v')
+        if pvf:
+            ax.errorbar(DIMENSION, pvf_mean_steps_to_goal, yerr=pvf_std_steps_to_goal, fmt='g', ecolor='green', label='pvf')
+        if s2v:
+            ax.errorbar(DIMENSION, s2v_mean_steps_to_goal, yerr=s2v_std_steps_to_goal, fmt='c', ecolor='cyan', label='s2v')
+        if gcn:
+            ax.errorbar(DIMENSION, gcn_mean_steps_to_goal, yerr=gcn_std_steps_to_goal, fmt='m', ecolor='magenta', label='gcn')
+        if gw:
+            ax.errorbar(DIMENSION, gw_mean_steps_to_goal, yerr=gw_std_steps_to_goal, fmt='k', ecolor='black', label='gw')
 
-        # ax.legend()
-        # ax.set_title('average number of steps')
-        #
-        # ax = axs[1]
-        # if n2v:
-        #     ax.errorbar(DIMENSION, n2v_mean_cumul_reward, yerr=n2v_std_cumul_reward, fmt='b', ecolor='blue', label='n2v')
-        # if pvf:
-        #     ax.errorbar(DIMENSION, pvf_mean_cumul_reward, yerr=pvf_std_cumul_reward, fmt='g', ecolor='green', label='pvf')
-        # if s2v:
-        #     ax.errorbar(DIMENSION, s2v_mean_cumul_reward, yerr=s2v_std_cumul_reward, fmt='c', ecolor='cyan', label='s2v')
-        # if gcn:
-        #     ax.errorbar(DIMENSION, gcn_mean_cumul_reward, yerr=gcn_std_cumul_reward, fmt='m', ecolor='magenta', label='gcn')
-        # if gw:
-        #     ax.errorbar(DIMENSION, gw_mean_cumul_reward, yerr=gw_std_cumul_reward, fmt='k', ecolor='black', label='gw')
-        #
-        # ax.set_title('average cumulative reward')
-        # ax.legend()
-        # figure_name = 'plots/' + environment_name + '/n2v_vs_pvf_vs_gcn_vs_s2v_vs_gcn_' + str(p) + 'p' + str(q) + 'q_' + str(
-        #     num_samples) + 'samples_' + str(nw) + 'num_walks' + str(wl) + 'walk_length.pdf'
-        # plt.savefig(figure_name)
-        # print("Saved figure %s " % figure_name)
+        ax.legend()
+        ax.set_title('average number of steps')
+
+        ax = axs[1]
+        if n2v:
+            ax.errorbar(DIMENSION, n2v_mean_cumul_reward, yerr=n2v_std_cumul_reward, fmt='b', ecolor='blue', label='n2v')
+        if pvf:
+            ax.errorbar(DIMENSION, pvf_mean_cumul_reward, yerr=pvf_std_cumul_reward, fmt='g', ecolor='green', label='pvf')
+        if s2v:
+            ax.errorbar(DIMENSION, s2v_mean_cumul_reward, yerr=s2v_std_cumul_reward, fmt='c', ecolor='cyan', label='s2v')
+        if gcn:
+            ax.errorbar(DIMENSION, gcn_mean_cumul_reward, yerr=gcn_std_cumul_reward, fmt='m', ecolor='magenta', label='gcn')
+        if gw:
+            ax.errorbar(DIMENSION, gw_mean_cumul_reward, yerr=gw_std_cumul_reward, fmt='k', ecolor='black', label='gw')
+
+        ax.set_title('average cumulative reward')
+        ax.legend()
+        figure_name = 'plots/' + environment_name + '/n2v_' + str(nw) + 'num_walks' + str(wl) + 'walk_length.pdf'
+        plt.savefig(figure_name)
+        print("Saved figure %s " % figure_name)
 
         # UNCOMMENT the lines below to write the results in pickle files
-        print('Writing pickles files...')
-        if n2v:
-            n2v_pickle = open(
-                'pickles/n2v_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
-            pickle.dump({'mean': n2v_mean_steps_to_goal, 'std': n2v_std_steps_to_goal}, n2v_pickle)
-            n2v_pickle.close()
-        if pvf:
-            pvf_pickle = open(
-                'pickles/pvf_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
-            pickle.dump({'mean': pvf_mean_steps_to_goal, 'std': pvf_std_steps_to_goal}, pvf_pickle)
-            pvf_pickle.close()
-        if s2v:
-            s2v_pickle = open(
-                'pickles/s2v_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
-            pickle.dump({'mean': s2v_mean_steps_to_goal, 'std': s2v_std_steps_to_goal}, s2v_pickle)
-            s2v_pickle.close()
-        if gcn:
-            gcn_pickle = open(
-                'pickles/gcn_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
-            pickle.dump({'mean': gcn_mean_steps_to_goal, 'std': gcn_std_steps_to_goal}, gcn_pickle)
-            gcn_pickle.close()
-        if gw:
-            gw_pickle = open(
-                'pickles/gw_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
-
-            pickle.dump({'mean': gw_mean_steps_to_goal, 'std': gw_std_steps_to_goal}, gw_pickle)
-            gw_pickle.close()
+        # print('Writing pickles files...')
+        # if n2v:
+        #     n2v_pickle = open(
+        #         'pickles/n2v_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
+        #     pickle.dump({'mean': n2v_mean_steps_to_goal, 'std': n2v_std_steps_to_goal}, n2v_pickle)
+        #     n2v_pickle.close()
+        # if pvf:
+        #     pvf_pickle = open(
+        #         'pickles/pvf_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
+        #     pickle.dump({'mean': pvf_mean_steps_to_goal, 'std': pvf_std_steps_to_goal}, pvf_pickle)
+        #     pvf_pickle.close()
+        # if s2v:
+        #     s2v_pickle = open(
+        #         'pickles/s2v_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
+        #     pickle.dump({'mean': s2v_mean_steps_to_goal, 'std': s2v_std_steps_to_goal}, s2v_pickle)
+        #     s2v_pickle.close()
+        # if gcn:
+        #     gcn_pickle = open(
+        #         'pickles/gcn_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
+        #     pickle.dump({'mean': gcn_mean_steps_to_goal, 'std': gcn_std_steps_to_goal}, gcn_pickle)
+        #     gcn_pickle.close()
+        # if gw:
+        #     gw_pickle = open(
+        #         'pickles/gw_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
+        #
+        #     pickle.dump({'mean': gw_mean_steps_to_goal, 'std': gw_std_steps_to_goal}, gw_pickle)
+        #     gw_pickle.close()
 
 
 def example():
@@ -406,7 +404,7 @@ def main():
         raise ValueError('Please enter the environment')
 
     env = sys.argv[1]
-    DIMENSION = [3, 5, 10, 20, 30, 40, 50, 60, 70]
+    DIMENSION = [30] #[10, 20, 30, 40, 50, 60, 70]
 
     if env == 'tworooms':
         environment = tworooms

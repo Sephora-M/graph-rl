@@ -6,7 +6,7 @@ NUM_BASIS = 5
 DEGREE = 3
 DISCOUNT = .8
 EXPLORE = 0
-NUM_SAMPLES = 3000
+NUM_SAMPLES = 200
 LEN_SAMPLE = 500
 MAX_ITERATIONS = 100000
 MAX_STEPS = 500
@@ -23,16 +23,24 @@ class LearningMazeDomain():
         self.num_samples = num_sample
         self.length_samples = length_sample
         self.samples = []
+        self.lspi_samples = []
+        self.walks = []
 
         self.random_policy_cumulative_rewards = np.sum([sample.reward for
                                                         sample in self.samples])
 
         self.solver = solvers.LSTDQSolver()
 
-    def compute_samples(self):
+    def compute_samples(self, reset_samples=True):
+        if reset_samples:
+            self.samples = []
+            self.lspi_samples = []
         for i in range(self.num_samples):
-            sample = self.domain.generate_samples(self.length_samples, self.sampling_policy)
+            sample, walk, terminated = self.domain.generate_samples(self.length_samples, self.sampling_policy)
             self.samples.extend(sample)
+            self.walks.append(walk)
+            # if terminated and len(self.lspi_samples) <= NUM_SAMPLES:
+            self.lspi_samples.extend(sample)
 
     def learn_proto_values_basis(self, num_basis=NUM_BASIS,  walk_length=30, num_walks=10, discount=DISCOUNT,
                                  explore=EXPLORE, max_iterations=MAX_ITERATIONS, max_steps=NUM_SAMPLES,
@@ -40,9 +48,9 @@ class LearningMazeDomain():
 
         if initial_policy is None:
             initial_policy = policy.Policy(basis_functions.ProtoValueBasis(
-                self.domain.learn_graph(walk_length, num_walks, self.sampling_policy), 4, num_basis), discount, explore)
+                self.domain.learn_graph(self.samples), 4, num_basis), discount, explore)
 
-        learned_policy, distances = lspi.learn(self.samples, initial_policy, self.solver,
+        learned_policy, distances = lspi.learn(self.lspi_samples, initial_policy, self.solver,
                                                max_iterations=max_iterations)
 
         self.domain.reset()
@@ -70,7 +78,7 @@ class LearningMazeDomain():
         if initial_policy is None:
             initial_policy = policy.Policy(basis_functions.OneDimensionalPolynomialBasis(degree, 4), discount, explore)
 
-        learned_policy, distances = lspi.learn(self.samples, initial_policy, self.solver,
+        learned_policy, distances = lspi.learn(self.lspi_samples, initial_policy, self.solver,
                                                max_iterations=max_iterations)
 
         self.domain.reset()
@@ -99,10 +107,10 @@ class LearningMazeDomain():
         if initial_policy is None:
             initial_policy = policy.Policy(basis_functions.Node2vecBasis(
                 edgelist, num_actions=4, transition_probabilities=self.domain.transition_probabilities,
-                dimension=dimension, reward_locations=self.domain.reward_location, walk_length=walk_length, num_walks=num_walks, window_size=window_size,
+                dimension=dimension, walks=self.walks, walk_length=walk_length, num_walks=num_walks, window_size=window_size,
                 p=p, q=q, epochs=epochs), discount, explore)
 
-        learned_policy, distances = lspi.learn(self.samples, initial_policy, self.solver,
+        learned_policy, distances = lspi.learn(self.lspi_samples, initial_policy, self.solver,
                                                max_iterations=max_iterations)
 
         self.domain.reset()
@@ -137,7 +145,7 @@ class LearningMazeDomain():
                                                                              dimension=dimension,
                                                                              time_pts_range=time_pts_range, taus=taus,
                                                                              nb_filters=nb_filters), discount, explore)
-        learned_policy, distances = lspi.learn(self.samples, initial_policy, self.solver,
+        learned_policy, distances = lspi.learn(self.lspi_samples, initial_policy, self.solver,
                                                max_iterations=max_iterations)
 
         self.domain.reset()
@@ -170,7 +178,7 @@ class LearningMazeDomain():
                                                                              window_size=window_size, epochs=epochs)
                                          , discount, explore)
 
-        learned_policy, distances = lspi.learn(self.samples, initial_policy, self.solver,
+        learned_policy, distances = lspi.learn(self.lspi_samples, initial_policy, self.solver,
                                                max_iterations=max_iterations)
 
         self.domain.reset()
@@ -203,7 +211,7 @@ class LearningMazeDomain():
         if initial_policy is None:
             initial_policy = policy.Policy(basis_functions.GCNBasis(graph_edgelist, num_actions=4,
                                                                              dimension=dimension, model_str='gcn_vae',), discount, explore)
-        learned_policy, distances = lspi.learn(self.samples, initial_policy, self.solver,
+        learned_policy, distances = lspi.learn(self.lspi_samples, initial_policy, self.solver,
                                                max_iterations=max_iterations)
 
         self.domain.reset()

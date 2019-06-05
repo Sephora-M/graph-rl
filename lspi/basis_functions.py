@@ -29,7 +29,6 @@ import tensorflow as tf
 import numpy as np
 
 
-
 class BasisFunction(object):
 
     r"""ABC for basis functions used by LSPI Policies.
@@ -736,7 +735,8 @@ class ProtoValueBasis(BasisFunction):
         phi = np.zeros(self.num_laplacian_eigenvectors * self.__num_actions)
 
         action_window = action*self.num_laplacian_eigenvectors
-        for basis_fct in self.graph.U[state[0], 1:self.num_laplacian_eigenvectors + 1]:
+        # for basis_fct in self.graph.U[state[0], 1:self.num_laplacian_eigenvectors + 1]:
+        for basis_fct in self.graph.L[state[0], 1:self.num_laplacian_eigenvectors + 1].toarray()[0]:
             phi[action_window] = basis_fct
             action_window = action_window + 1
 
@@ -782,7 +782,7 @@ class Node2vecBasis(BasisFunction):
 
     """
 
-    def __init__(self, graph_edgelist, num_actions, transition_probabilities, dimension,
+    def __init__(self, graph_edgelist, num_actions, transition_probabilities, dimension, walks,
                  walk_length=100, num_walks=50, window_size=10, p=1, q=1, epochs=1, workers=8):
         """Initialize ExactBasis."""
         if graph_edgelist is None:
@@ -795,18 +795,19 @@ class Node2vecBasis(BasisFunction):
 
         self._dimension = dimension
 
-        self._nxgraph = self.read_graph(graph_edgelist)
-        self._walk_length = walk_length
-        self._num_walks = num_walks
+        # self._nxgraph = self.read_graph(graph_edgelist)
+        # self._walk_length = walk_length
+        # self._num_walks = num_walks
         self._window_size = window_size
-        self._p = p
-        self._q = q
+        # self._p = p
+        # self._q = q
         self._epochs = epochs
         self._workers = workers
+        self._mean = []
 
-        self.G = node2vec.Graph(self._nxgraph, False, self._p, self._q, transition_probabilities)
-        self.G.preprocess_transition_probs()
-        walks = self.G.simulate_random_walks(self._num_walks, self._walk_length)#, True, reward_locations)
+        # self.G = node2vec.Graph(self._nxgraph, False, self._p, self._q, transition_probabilities)
+        # self.G.preprocess_transition_probs()
+        # walks = self.G.simulate_random_walks(self._num_walks, self._walk_length)#, True, reward_locations)
         self.model = self.learn_embeddings(walks)
 
     def size(self):
@@ -856,7 +857,8 @@ class Node2vecBasis(BasisFunction):
         try:
             basis_fcts = self.model[str(state[0])]
         except KeyError:
-            basis_fcts = [0] * self._dimension
+            basis_fcts = self._mean
+            # basis_fcts = [0] * self._dimension
 
         for basis_fct in basis_fcts:
             phi[action_window] = basis_fct
@@ -907,7 +909,7 @@ class Node2vecBasis(BasisFunction):
         walks = [map(str, walk) for walk in walks]
         model = Word2Vec(walks, size=self._dimension, window=self._window_size, min_count=0, sg=1,
                          workers=self._workers, iter=self._epochs)
-
+        self._mean = np.mean(model.wv[model.wv.vocab], axis=0)
         return model
 
 

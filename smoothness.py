@@ -5,74 +5,79 @@ from lspi import domains, basis_functions
 import matplotlib.pyplot as plt
 import pickle
 
-dimensions = [30, 50, 100, 500]
+dimensions = [3, 5, 10, 20, 30, 50, 70, 99]
 plot_se_dims = []
 wl = 100
-nw = 500
-K = 3
+nw = 100
+K = 10
 DISCOUNT = 0.9
-environment_name = 'threerooms'
+environment_name = 'obstacleroom'
 
 
 def main(folder):
-    maze, V = threerooms(False, computeV=True, num_sample=1)
+    maze, V = obstacles_room(False, computeV=True, num_sample=1)
     # fig, ax = plt.subplots(1, 1)
     # maze.domain.graph.plot_signal(maze.domain.transition_probabilities, vertex_size=60, ax=ax)
     # plt.savefig(folder + 'transition_prob')
     # plt.close()
 
     pvfs_mean_errors = []
-    # pvfsW_mean_errors = []
+    pvfsW_mean_errors = []
     n2v_mean_errors = []
 
     pvfs_std_errors = []
-    # pvfsW_std_errors = []
+    pvfsW_std_errors = []
     n2v_std_errors = []
 
     for d in dimensions:
         print('Dimension %d ' % d)
         pvfs_errors = []
-        # pvfsW_errors = []
-        n2v_errors = []
+        pvfsW_errors = []
+        # n2v_errors = []
 
         for k in range(K):
             print('computing %d th run' % k)
-            print('node2vec')
-            n2v_basis = compute_node2VecBasis(maze, dimension=d, walk_length=wl, num_walks=nw, window_size=10,
-                                              edgelist='node2vec/graph/threerooms.edgelist')
+            # print('node2vec')
+            # n2v_basis = compute_node2VecBasis(maze, dimension=d, walk_length=wl, num_walks=nw, window_size=10,
+            #                                   edgelist='node2vec/graph/threerooms.edgelist')
             print('pvf')
             pvfs_basis = compute_ProtoValueBasis(maze, num_basis=d, walk_length=wl, num_walks=nw)
-            # pvfsW_basis = compute_ProtoValueBasis(maze, num_basis=d, walk_length=wl, num_walks=nw, weighted_graph=True)
+            pvfsW_basis = compute_ProtoValueBasis(maze, num_basis=d, walk_length=wl, num_walks=nw, weighted_graph=True)
             # n2v_basis = compute_node2VecBasis(maze, dimension=d, walk_length=wl, num_walks=int(nw/maze.domain.graph.N), window_size=10,
             #                                   edgelist='node2vec/graph/threerooms.edgelist')
 
 
             pvf_params, pvf_error = least_squares(pvfs_basis, V, np.random.uniform(-1.0, 1.0, size=(d,)))
-            # pvfW_params, pvfW_error = least_squares(pvfsW_basis, V, np.random.uniform(-1.0, 1.0, size=(d,)))
-            n2v_params, n2v_error = least_squares(n2v_basis, V, np.random.uniform(-1.0, 1.0, size=(d,)))
+            pvfW_params, pvfW_error = least_squares(pvfsW_basis, V, np.random.uniform(-1.0, 1.0, size=(d,)))
+            # n2v_params, n2v_error = least_squares(n2v_basis, V, np.random.uniform(-1.0, 1.0, size=(d,)))
 
             pvfs_errors.append(pvf_error)
-            # pvfsW_errors.append(pvfW_error)
-            n2v_errors.append(n2v_error)
+            pvfsW_errors.append(pvfW_error)
+            # n2v_errors.append(n2v_error)
 
         pvfs_mean_errors.append(np.mean(pvfs_errors))
-        # pvfsW_mean_errors.append(np.mean(pvfsW_errors))
-        n2v_mean_errors.append(np.mean(n2v_errors))
+        pvfsW_mean_errors.append(np.mean(pvfsW_errors))
+        # n2v_mean_errors.append(np.mean(n2v_errors))
 
         pvfs_std_errors.append(np.std(pvfs_errors))
-        # pvfsW_std_errors.append(np.std(pvfsW_errors))
-        n2v_std_errors.append(np.std(n2v_errors))
+        pvfsW_std_errors.append(np.std(pvfsW_errors))
+        # n2v_std_errors.append(np.std(n2v_errors))
 
 
-        n2v_pickle = open(
-            'pickles/n2v_' + environment_name + '_' + str(DISCOUNT) + 'discount.pkl', 'wb')
-        pickle.dump({'mean': n2v_mean_errors, 'std': n2v_std_errors}, n2v_pickle)
-        n2v_pickle.close()
+        # n2v_pickle = open(
+        #     'pickles/n2v_' + environment_name + '_' + str(DISCOUNT) + 'discount.pkl', 'wb')
+        # pickle.dump({'mean': n2v_mean_errors, 'std': n2v_std_errors}, n2v_pickle)
+        # n2v_pickle.close()
 
         pvf_pickle = open(
             'pickles/pvf_' + environment_name + '_' + str(DISCOUNT) + 'discount.pkl', 'wb')
         pickle.dump({'mean': pvfs_mean_errors, 'std': pvfs_std_errors}, pvf_pickle)
         pvf_pickle.close()
+
+        pvfW_pickle = open(
+            'pickles/pvfW_' + environment_name + '_' + str(DISCOUNT) + 'discount.pkl', 'wb')
+        pickle.dump({'mean': pvfsW_mean_errors, 'std': pvfsW_std_errors}, pvfW_pickle)
+        pvfW_pickle.close()
 
         if d in plot_se_dims:
             pvf_se = np.square(V - np.matmul(pvfs_basis, pvf_params))
@@ -98,10 +103,10 @@ def main(folder):
             # plot_values(maze.domain.graph, pvfsW_basis, pvfW_params, save=True, file_name=folder + 'dim'+str(d)+'/pvfW_approx_v.pdf')
             plot_values(maze.domain.graph, n2v_basis, n2v_params, save=True, file_name=folder + 'dim'+str(d)+'/n2v_approx_v.pdf')
 
-    # return pvfs_mean_errors, pvfsW_mean_errors, n2v_mean_errors, pvfs_std_errors, pvfsW_std_errors, n2v_std_errors
+    return pvfs_mean_errors, pvfsW_mean_errors, n2v_mean_errors, pvfs_std_errors, pvfsW_std_errors, n2v_std_errors
 
 
-def plot_errors(folder='plots/three_rooms/'):
+def plot_errors(folder='plots/obstacles_room/'):
     # plot approx values on a grid
     # plot the MSE on the grid
     # try ploting the actions
@@ -113,7 +118,7 @@ def plot_errors(folder='plots/three_rooms/'):
     plt.errorbar(dimensions, pvfsW_mean_errors, yerr=pvfsW_std_errors, fmt='k', ecolor='black', label='pvf_w')
     plt.legend()
     plt.suptitle('Mean Square Error')
-    plt.savefig(folder + 'pvfs_MSE.pdf')
+    plt.savefig(folder + 'smoothness_MSE.pdf')
     plt.close()
 
 
@@ -388,7 +393,7 @@ def obstacles_room(plotV=True, num_sample=100, computeV=False):
 
 
 def compute_ProtoValueBasis(maze, num_basis=30, walk_length=100, num_walks=50, weighted_graph=False,
-                            lap_type='normalized'):
+                            lap_type='combinatorial'):
     if weighted_graph:
         graph = maze.domain.weighted_graph
         # graph.plot(save_as = 'weighted_graph')
