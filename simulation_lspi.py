@@ -6,18 +6,19 @@ from optimise import tworooms, obstacles_room, low_stretch_tree_maze, oneroom, t
 
 GRID_SIZES = [100]
 grid_size = 10
-WINDOW_SIZES = [1,2,3,4,5,7,10,20]
+WINDOW_SIZES = [10]
 window_size = 10
-discount = 0.9
+discount = 0.8
 MAX_STEPS = 100
-K = 10
+K = 2
 p = 1
 Q = [4]
 wl = 100
-NUM_WALKS = [32, 64, 128, 256, 512]
-nw=128
-dimension = 30
+NUM_WALKS = [100]
+LSPI_EPOCHS=[1,2,3,4,5,6,7,8,9,10]
+nw = 256
 
+dimension = 30
 def run_experiment(environment_name, environment, edge_lisit, num_states, reward_location, walls_location, DIMENSION,
                    gcn=False, n2v=True, pvf=False, gw=False, s2v=False):
     print('>>>>>>>>>>>>>>> ENVIRONMENT: ' + environment_name)
@@ -47,11 +48,11 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
         gw_std_cumul_reward = []
         gcn_std_cumul_reward = []
 
-        for window_size in WINDOW_SIZES:
+        for lspi_epochs in LSPI_EPOCHS:
             maze, _ = environment(False, nw, wl, discount)
             print('>>>>>>>>>>>>>>>>>>>>>>>>>> dimension basis function : ' + str(dimension))
             print('>>>>>>>>>>>>>>>>>>>>>>>>>> number of random walks of lenth '+ str(wl) +' : ' + str(nw))
-            print('>>>>>>>>>>>>>>>>>>>>>>>>>> window size : ' + str(window_size))
+            print('>>>>>>>>>>>>>>>>>>>>>>>>>> number of epochs of lspi '+ str(lspi_epochs))
             # print('>>>>>>>>>>>>>>>>>>>>>>>>>> discount factor : ' + str(discount))
             # print('>>>>>>>>>>>>>>>>>>>>>>>>>> q : ' + str(q))
             # print('>>>>>>>>>>>>>>>>>>>>>>>>>> p : ' + str(p))
@@ -95,7 +96,7 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
 
                 if pvf:
                     pvf_num_steps, pvf_learned_policy, pvf_samples, pvf_distances = maze.learn_proto_values_basis(
-                        num_basis=dimension, walk_length=wl, num_walks=nw, explore=1.)
+                        num_basis=dimension, walk_length=wl, num_walks=nw, explore=0)
 
                     pvf_all_steps_to_goal, pvf_all_samples, pvf_all_cumulative_rewards, pvf_all_mean_steps_to_goal, pvf_all_mean_cumulative_rewards = simulate(
                         num_states, reward_location, walls_location, maze, pvf_learned_policy, max_steps=MAX_STEPS)
@@ -107,7 +108,7 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
                     n2v_num_steps, n2v_learned_policy, n2v_samples, n2v_distances = maze.learn_node2vec_basis(
                         dimension=dimension, walk_length=wl,
                         num_walks=nw, window_size=window_size, p=p, q=q,
-                        epochs=15, explore=1., edgelist=edge_lisit)
+                        epochs=1, explore=1, edgelist=edge_lisit,lspi_epochs=lspi_epochs)
                     n2v_all_steps_to_goal, n2v_all_samples, n2v_all_cumulative_rewards, n2v_all_mean_steps_to_goal, n2v_all_mean_cumulative_rewards = simulate(
                         num_states, reward_location, walls_location, maze, n2v_learned_policy, max_steps=MAX_STEPS)
 
@@ -196,34 +197,35 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
         fig, axs = plt.subplots(nrows=2, ncols=1, sharex=True)
         ax = axs[0]
         if n2v:
-            ax.errorbar(WINDOW_SIZES, n2v_mean_steps_to_goal, yerr=n2v_std_steps_to_goal, fmt='b', ecolor='blue', label='n2v')
+            ax.errorbar(LSPI_EPOCHS, n2v_mean_steps_to_goal, yerr=n2v_std_steps_to_goal, fmt='b', ecolor='blue', label='n2v')
         if pvf:
-            ax.errorbar(WINDOW_SIZES, pvf_mean_steps_to_goal, yerr=pvf_std_steps_to_goal, fmt='g', ecolor='green', label='pvf')
+            ax.errorbar(LSPI_EPOCHS, pvf_mean_steps_to_goal, yerr=pvf_std_steps_to_goal, fmt='g', ecolor='green', label='pvf')
         if s2v:
-            ax.errorbar(WINDOW_SIZES, s2v_mean_steps_to_goal, yerr=s2v_std_steps_to_goal, fmt='c', ecolor='cyan', label='s2v')
+            ax.errorbar(LSPI_EPOCHS, s2v_mean_steps_to_goal, yerr=s2v_std_steps_to_goal, fmt='c', ecolor='cyan', label='s2v')
         if gcn:
-            ax.errorbar(WINDOW_SIZES, gcn_mean_steps_to_goal, yerr=gcn_std_steps_to_goal, fmt='m', ecolor='magenta', label='gcn')
+            ax.errorbar(LSPI_EPOCHS, gcn_mean_steps_to_goal, yerr=gcn_std_steps_to_goal, fmt='m', ecolor='magenta', label='gcn')
         if gw:
-            ax.errorbar(WINDOW_SIZES, gw_mean_steps_to_goal, yerr=gw_std_steps_to_goal, fmt='k', ecolor='black', label='gw')
+            ax.errorbar(LSPI_EPOCHS, gw_mean_steps_to_goal, yerr=gw_std_steps_to_goal, fmt='k', ecolor='black', label='gw')
 
         ax.legend()
         ax.set_title('average number of steps')
 
         ax = axs[1]
         if n2v:
-            ax.errorbar(WINDOW_SIZES, n2v_mean_cumul_reward, yerr=n2v_std_cumul_reward, fmt='b', ecolor='blue', label='n2v')
+            ax.errorbar(LSPI_EPOCHS, n2v_mean_cumul_reward, yerr=n2v_std_cumul_reward, fmt='b', ecolor='blue', label='n2v')
         if pvf:
-            ax.errorbar(WINDOW_SIZES, pvf_mean_cumul_reward, yerr=pvf_std_cumul_reward, fmt='g', ecolor='green', label='pvf')
+            ax.errorbar(LSPI_EPOCHS, pvf_mean_cumul_reward, yerr=pvf_std_cumul_reward, fmt='g', ecolor='green', label='pvf')
         if s2v:
-            ax.errorbar(WINDOW_SIZES, s2v_mean_cumul_reward, yerr=s2v_std_cumul_reward, fmt='c', ecolor='cyan', label='s2v')
+            ax.errorbar(LSPI_EPOCHS, s2v_mean_cumul_reward, yerr=s2v_std_cumul_reward, fmt='c', ecolor='cyan', label='s2v')
         if gcn:
-            ax.errorbar(WINDOW_SIZES, gcn_mean_cumul_reward, yerr=gcn_std_cumul_reward, fmt='m', ecolor='magenta', label='gcn')
+            ax.errorbar(LSPI_EPOCHS, gcn_mean_cumul_reward, yerr=gcn_std_cumul_reward, fmt='m', ecolor='magenta', label='gcn')
         if gw:
-            ax.errorbar(WINDOW_SIZES, gw_mean_cumul_reward, yerr=gw_std_cumul_reward, fmt='k', ecolor='black', label='gw')
+            ax.errorbar(LSPI_EPOCHS, gw_mean_cumul_reward, yerr=gw_std_cumul_reward, fmt='k', ecolor='black', label='gw')
 
         ax.set_title('average cumulative reward')
         ax.legend()
-        figure_name = 'plots/' + environment_name + '/n2v_' + str(dimension) + 'dimension_'+ str(discount) + 'discount_' + str(nw) + 'walks_' + str(wl) + 'walkLength_penalty_policyWalks_15n2vEpochs_windows.pdf'
+        figure_name = 'plots/' + environment_name + '/n2v_' + str(dimension) + 'dimension_'+ str(discount) + 'discount_'\
+                      + str(nw) + 'walks_' + str(wl) + 'walk_length_penalty_lspirep_0.9decay.pdf'
         plt.savefig(figure_name)
         print("Saved figure %s " % figure_name)
 
@@ -310,6 +312,7 @@ def example():
 
 
 def simulate(num_states, reward_location, walls_location, maze, learned_policy, max_steps=100):
+    print(learned_policy.explore)
     learned_policy.explore = 0.
     all_steps_to_goal = {}
     all_samples = {}

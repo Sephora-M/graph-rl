@@ -71,5 +71,6 @@ def learn(data, initial_policy, solver, epsilon=10**-5, max_iterations=10):
 
     if iteration >= max_iterations:
         print("LSPI: reached max iterations!")
+        print(distances[:10])
 
     return curr_policy, distances

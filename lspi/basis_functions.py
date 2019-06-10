@@ -795,12 +795,12 @@ class Node2vecBasis(BasisFunction):
 
         self._dimension = dimension
 
-        # self._nxgraph = self.read_graph(graph_edgelist)
-        # self._walk_length = walk_length
-        # self._num_walks = num_walks
+        self._nxgraph = self.read_graph(graph_edgelist)
+        self._walk_length = walk_length
+        self._num_walks = num_walks
         self._window_size = window_size
-        # self._p = p
-        # self._q = q
+        self._p = p
+        self._q = q
         self._epochs = epochs
         self._workers = workers
         self._mean = []
@@ -808,6 +808,7 @@ class Node2vecBasis(BasisFunction):
         # self.G = node2vec.Graph(self._nxgraph, False, self._p, self._q, transition_probabilities)
         # self.G.preprocess_transition_probs()
         # walks = self.G.simulate_random_walks(self._num_walks, self._walk_length)#, True, reward_locations)
+        # print(walks[:50])
         self.model = self.learn_embeddings(walks)
 
     def size(self):

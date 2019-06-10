@@ -766,7 +766,7 @@ class SymmetricMazeDomain(Domain):
 
         # in the case of failing action
         if new_location == self._state[0] or random() > self.transition_probabilities[new_location]:
-            return Sample(self._state.copy(), action, 0., self._state.copy())
+            return Sample(self._state.copy(), action, -10., self._state.copy())
 
         next_state = np.array([new_location])
 
