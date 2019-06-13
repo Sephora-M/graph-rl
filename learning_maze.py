@@ -40,11 +40,11 @@ class LearningMazeDomain():
             self.samples = []
             self.lspi_samples = []
         for i in range(self.num_samples):
-            sample, walk, terminated = self.domain.generate_samples(self.length_samples, self.sampling_policy)
+            sample, walk, terminated, lspi_sample = self.domain.generate_samples(self.length_samples, self.sampling_policy)
             self.samples.extend(sample)
             self.walks.append(walk)
             # if terminated: # and len(self.lspi_samples) <= NUM_SAMPLES:
-            self.lspi_samples.extend(sample)
+            self.lspi_samples.extend(lspi_sample)
 
     def learn_proto_values_basis(self, num_basis=NUM_BASIS, explore=EXPLORE, max_iterations=MAX_ITERATIONS, max_steps=NUM_SAMPLES,
                                  initial_policy=None, rpi_epochs=1, run_simulation=False):

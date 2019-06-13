@@ -412,7 +412,6 @@ class GridMazeDomain(Domain):
         self._state = self._init_random_state()
 
     def learn_graph(self, samples):
-
         adjency_matrix = sparse.lil_matrix((self.num_states, self.num_states))
 
         for sample in samples:
@@ -425,17 +424,24 @@ class GridMazeDomain(Domain):
     def generate_samples(self, sample_length, sampling_policy):
         sample = []
         walk = []
+        lspi_sample = []
+        early_stop = False
         for i in range(sample_length):
             action = sampling_policy.select_action(self.current_state())
             s = self.apply_action(action)
             sample.append(s)
             walk.append(s.state[0])
+
+            if not early_stop:
+                lspi_sample.append(s)
+
             if s.absorb:
-                walk.append(s.next_state[0])
-                return sample, walk, True
+                early_stop = True
+                walk.append(self.reward_location)
+                return sample, walk, early_stop, lspi_sample
         self.reset(self.initial_state)
 
-        return sample, walk, False
+        return sample, walk, early_stop, lspi_sample
 
     def num_actions(self):
         """Return number of actions.
@@ -512,7 +518,8 @@ class GridMazeDomain(Domain):
             reward = 100.
             absorb = True
             sample = Sample(self._state.copy(), action, reward, next_state.copy(), absorb)
-            self.reset(self.initial_state)
+            self._state = next_state
+            # self.reset(self.initial_state)
         else:
             absorb = False
             reward = 0.
