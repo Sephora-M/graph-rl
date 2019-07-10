@@ -4,10 +4,11 @@
 import abc
 import networkx as nx
 
-from node2vec.src import node2vec
+from node2vec import node2vec
 from struc2vec.src import struc2vec
 from struc2vec.src import graph
 from graphwave import graphwave
+from gammanode2vec import gammanode2vec
 
 from gensim.models import Word2Vec
 from gensim.models.word2vec import LineSentence
@@ -15,10 +16,6 @@ from gensim.models.word2vec import LineSentence
 import scipy.sparse as sp
 
 import time
-
-from sklearn.metrics import roc_auc_score
-from sklearn.metrics import average_precision_score
-
 
 from gae.model import GCNModelAE, GCNModelVAE
 from gae.preprocessing import preprocess_graph, construct_feed_dict, sparse_to_tuple, mask_test_edges
@@ -1365,3 +1362,156 @@ class GCNBasis(BasisFunction):
         if value < 1:
             raise ValueError('num_actions must be at least 1.')
         self.__num_actions = value
+
+
+class DiscountedNode2vecBasis(BasisFunction):
+
+    """Node2vec basis functions.
+
+    These basis functions are learned using the node2vec algorithm
+    on an undirected graph formed from state transitions induced by the MDP
+
+    Parameters
+    ----------
+    graph: pygsp.graphs
+        Graph where the nodes are the states and the edges represent transitions
+    num_actions: int
+        Number of possible actions.
+
+    """
+
+    def __init__(self, graph_edgelist, num_actions, transition_probabilities, discount, dimension, walks,
+                 walk_length=100, num_walks=50, window_size=10, p=1, q=1, epochs=1, learning_rate=0.5, workers=8):
+        """Initialize ExactBasis."""
+        if graph_edgelist is None:
+            raise ValueError('graph cannot be None')
+
+        if dimension < 0:
+            raise ValueError('dimension must be >= 0')
+
+        self.__num_actions = BasisFunction._validate_num_actions(num_actions)
+
+        self._dimension = dimension
+
+        self._nxgraph = self.read_graph(graph_edgelist)
+        self._walk_length = walk_length
+        self._num_walks = num_walks
+        self._window_size = window_size
+        self._p = p
+        self._q = q
+        self._epochs = epochs
+        self._workers = workers
+        self._mean = []
+        self._num_states = len(transition_probabilities)
+        self._discount = discount
+        self._learning_rate = learning_rate
+
+        self.G = node2vec.Graph(self._nxgraph, False, self._p, self._q, transition_probabilities)
+        self.G.preprocess_transition_probs()
+        walks = self.G.simulate_random_walks(self._num_walks, self._walk_length)#, True, reward_locations)
+        # print(walks[:50])
+        self.model, _ = self.learn_embeddings(walks)
+
+    def size(self):
+        r"""Return the vector size of the basis function.
+
+        Returns
+        -------
+        int
+            The size of the :math:`\phi` vector.
+            (Referred to as k in the paper).
+        """
+        return self._dimension * self.__num_actions
+
+    def evaluate(self, state, action):
+        r"""Return a :math:`\phi` vector that has a self._num_laplacian_eigenvectors non-zero value.
+
+        Parameters
+        ----------
+        state: numpy.array
+            The state to get the features for. When calculating Q(s, a) this is
+            the s.
+        action: int
+            The action index to get the features for.
+            When calculating Q(s, a) this is the a.
+
+        Returns
+        -------
+        numpy.array
+            :math:`\phi` vector
+
+        Raises
+        ------
+        IndexError
+            If action index < 0 or action index > num_actions
+        ValueError
+            If the size of the state does not match the the size of the
+            num_states list used during construction.
+        ValueError
+            If any of the state variables are < 0 or >= the corresponding
+            value in the num_states list used during construction.
+        """
+
+        phi = np.zeros(self._dimension*self.__num_actions)
+
+        action_window = action*self._dimension
+
+        try:
+            basis_fcts = self.model[str(state[0])]
+        except KeyError:
+            basis_fcts = self._mean
+            # basis_fcts = [0] * self._dimension
+
+        for basis_fct in basis_fcts:
+            phi[action_window] = basis_fct
+            action_window = action_window + 1
+
+        return phi
+
+    @property
+    def num_actions(self):
+        """Return number of possible actions."""
+        return self.__num_actions
+
+    @num_actions.setter
+    def num_actions(self, value):
+        """Set the number of possible actions.
+
+        Parameters
+        ----------
+        value: int
+            Number of possible actions. Must be >= 1.
+
+        Raises
+        ------
+        ValueError
+            if value < 1.
+        """
+        if value < 1:
+            raise ValueError('num_actions must be at least 1.')
+        self.__num_actions = value
+
+    def read_graph(self, edge_list):
+        '''
+        Reads the input network in networkx.
+        '''
+
+        G = nx.read_edgelist(edge_list, nodetype=int, create_using=nx.DiGraph())
+        for edge in G.edges():
+            G[edge[0]][edge[1]]['weight'] = 1
+
+        G = G.to_undirected()
+
+        return G
+
+    def learn_embeddings(self, walks):
+        '''
+        Learn embeddings by optimizing the Skipgram objective using SGD.
+        '''
+
+        model = gammanode2vec.DiscountedNode2Vec(self._num_states, self._dimension, self._window_size, walks,
+                                                 self._discount)
+        embeddings, training_info = model.train_discounted_n2v(learning_rate=self._learning_rate,
+                                                               num_epochs=self._epochs)
+        self._mean = np.mean(np.array(embeddings.values()), axis=0)
+        return embeddings, training_info

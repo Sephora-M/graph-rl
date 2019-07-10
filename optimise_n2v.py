@@ -41,7 +41,7 @@ def main(folder='plots/three_room/', pvf=False):
                 pvfs_errors.append(pvf_error)
 
             n2v_basis = compute_node2VecBasis(maze, dimension=d, walk_length=wl, num_walks=nw, window_size=10,
-                                              edgelist='node2vec/graph/tworooms_withwalls.edgelist', p=1, q=4)
+                                              edgelist='node2vec/graph/tworooms_withwalls.edgelist', p=1, q=4, epochs=20)
             n2v_params, n2v_error = least_squares(n2v_basis, V, np.random.uniform(-1.0, 1.0, size=(d,)))
             n2v_errors.append(n2v_error)
 

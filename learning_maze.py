@@ -139,6 +139,43 @@ class LearningMazeDomain():
 
         return steps_to_goal, learned_policy, samples, distances
 
+    def learn_discounted_node2vec_basis(self, dimension=NUM_BASIS, walk_length=30, num_walks=10, window_size=10,
+                             p=1, q=1, epochs=1, learning_rate=0.5, explore=EXPLORE, max_iterations=MAX_ITERATIONS,
+                             max_steps=NUM_SAMPLES, initial_policy=None, edgelist ='node2vec/graph/NA.edgelist',
+                             run_simulation=False, lspi_epochs=1):
+
+        if initial_policy is None:
+            initial_policy = policy.Policy(basis_functions.DiscountedNode2vecBasis(
+                edgelist, num_actions=4, transition_probabilities=self.domain.transition_probabilities, discount=self.discount,
+                dimension=dimension, walks=self.walks, walk_length=walk_length, num_walks=num_walks, window_size=window_size,
+                p=p, q=q, epochs=epochs, learning_rate=learning_rate), self.discount, explore)
+
+        self.sampling_policy = initial_policy
+        for i in range(lspi_epochs):
+            learned_policy, distances = lspi.learn(self.lspi_samples, self.sampling_policy, self.solver,
+                                               max_iterations=max_iterations)
+            self.sampling_policy = learned_policy
+            self.sampling_policy.explore *= EPSILON_DECAY
+            self.compute_samples(True)
+        # self.sampling_policy.explore = 1.
+        self.domain.reset()
+
+        steps_to_goal = 0
+        absorb = False
+        samples = []
+
+        if run_simulation:
+            while (not absorb) and (steps_to_goal < max_steps):
+                action = learned_policy.select_action(self.domain.current_state())
+                sample = self.domain.apply_action(action)
+                absorb = sample.absorb
+                if absorb:
+                    print('Reached the goal in %d', steps_to_goal)
+                steps_to_goal += 1
+                samples.append(sample)
+
+        return steps_to_goal, learned_policy, samples, distances
+
     def learn_graphwave_basis(self, graph_edgelist, dimension, walk_length=30, num_walks=10, time_pts_range=[0, 25],
                               taus='auto', max_iterations=MAX_ITERATIONS, max_steps=NUM_SAMPLES, nb_filters=1,
                               initial_policy=None, discount=DISCOUNT, explore=EXPLORE, run_simulation=False):

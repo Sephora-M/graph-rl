@@ -11,39 +11,39 @@ window_size = 2
 discount = 0.9
 MAX_STEPS = 100
 K = 5
-p = 1
-q = 4
+p = 2
+q = 0.5 # DFS like
 wl = 20
 NUM_WALKS = [25, 50, 100, 150, 200, 250, 300]
 nw=64
 dimension = 50
 
 def run_experiment(environment_name, environment, edge_lisit, num_states, reward_location, walls_location, DIMENSION,
-                   gcn=False, n2v=True, pvf=True, gw=False, s2v=False):
+                   gcn=False, n2v=False, pvf=False, dn2v=True, s2v=False):
     print('>>>>>>>>>>>>>>> ENVIRONMENT: ' + environment_name)
 
     n2v_mean_steps_to_goal = []
     pvf_mean_steps_to_goal = []
     s2v_mean_steps_to_goal = []
-    gw_mean_steps_to_goal = []
+    dn2v_mean_steps_to_goal = []
     gcn_mean_steps_to_goal = []
 
     n2v_mean_cumul_reward = []
     pvf_mean_cumul_reward = []
     s2v_mean_cumul_reward = []
-    gw_mean_cumul_reward = []
+    dn2v_mean_cumul_reward = []
     gcn_mean_cumul_reward = []
 
     n2v_std_steps_to_goal = []
     pvf_std_steps_to_goal = []
     s2v_std_steps_to_goal = []
-    gw_std_steps_to_goal = []
+    dn2v_std_steps_to_goal = []
     gcn_std_steps_to_goal = []
 
     n2v_std_cumul_reward = []
     pvf_std_cumul_reward = []
     s2v_std_cumul_reward = []
-    gw_std_cumul_reward = []
+    dn2v_std_cumul_reward = []
     gcn_std_cumul_reward = []
 
     for nw in NUM_WALKS:
@@ -59,7 +59,7 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
 
         n2v_all_results = {}
         pvf_all_results = {}
-        gw_all_results = {}
+        dn2v_all_results = {}
         gcn_all_results = {}
         s2v_all_results = {}
 
@@ -72,8 +72,8 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
         d_pvf_mean_steps_to_goal = []
         d_pvf_mean_cumul_reward = []
 
-        d_gw_mean_steps_to_goal = []
-        d_gw_mean_cumul_reward = []
+        d_dn2v_mean_steps_to_goal = []
+        d_dn2v_mean_cumul_reward = []
 
         d_gcn_mean_steps_to_goal = []
         d_gcn_mean_cumul_reward = []
@@ -114,17 +114,16 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
                                       'cumul_rewards': n2v_all_cumulative_rewards,
                                       'learning_distances': n2v_distances}
 
-            if gw:
-                gw_num_steps, gw_learned_policy, gw_samples, gw_distances = maze.learn_graphwave_basis(
-                    graph_edgelist=edge_lisit, dimension=dimension, walk_length=wl,
-                    num_walks=nw, explore=0, discount=discount, time_pts_range=[0, 100], taus='auto',
-                    nb_filters=1)
+            if dn2v:
+                dn2v_num_steps, dn2v_learned_policy, dn2v_samples, dn2v_distances = maze.learn_discounted_node2vec_basis(
+                    dimension=dimension, walk_length=wl, num_walks=nw, window_size=wl,
+                    p=p, q=q, epochs=20, learning_rate=0.5, explore=1., edgelist=edge_lisit)
 
-                gw_all_steps_to_goal, gw_all_samples, gw_all_cumulative_rewards, gw_all_mean_steps_to_goal, gw_all_mean_cumulative_rewards = simulate(
-                    num_states, reward_location, walls_location, maze, gw_learned_policy, max_steps=MAX_STEPS)
-                gw_all_results[k] = {'steps_to_goal': gw_all_steps_to_goal, 'samples': gw_all_samples,
-                                      'cumul_rewards': gw_all_cumulative_rewards,
-                                      'learning_distances': gw_distances}
+                dn2v_all_steps_to_goal, dn2v_all_samples, dn2v_all_cumulative_rewards, dn2v_all_mean_steps_to_goal, dn2v_all_mean_cumulative_rewards = simulate(
+                    num_states, reward_location, walls_location, maze, dn2v_learned_policy, max_steps=MAX_STEPS)
+                dn2v_all_results[k] = {'steps_to_goal': dn2v_all_steps_to_goal, 'samples': dn2v_all_samples,
+                                      'cumul_rewards': dn2v_all_cumulative_rewards,
+                                      'learning_distances': dn2v_distances}
 
             if s2v:
                 s2v_num_steps, s2v_learned_policy, s2v_samples, s2v_distances = maze.learn_struc2vec_basis(
@@ -152,9 +151,11 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
             if s2v:
                 d_s2v_mean_cumul_reward.append(s2v_all_mean_cumulative_rewards)
                 d_s2v_mean_steps_to_goal.append(s2v_all_mean_steps_to_goal)
-            if gw:
-                d_gw_mean_cumul_reward.append(gw_all_mean_cumulative_rewards)
-                d_gw_mean_steps_to_goal.append(gw_all_mean_steps_to_goal)
+            if dn2v:
+                d_dn2v_mean_cumul_reward.append(dn2v_all_mean_cumulative_rewards)
+                print("dn2v mean cumul reward " + str(dn2v_all_mean_cumulative_rewards))
+                d_dn2v_mean_steps_to_goal.append(dn2v_all_mean_steps_to_goal)
+                print("dn2v mean steps to goal " + str(dn2v_all_mean_steps_to_goal))
             if gcn:
                 d_gcn_mean_cumul_reward.append(gcn_all_mean_cumulative_rewards)
                 d_gcn_mean_steps_to_goal.append(gcn_all_mean_steps_to_goal)
@@ -177,11 +178,11 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
             s2v_std_steps_to_goal.append(np.std(d_s2v_mean_steps_to_goal))
             s2v_std_cumul_reward.append(np.std(d_s2v_mean_cumul_reward))
 
-        if gw:
-            gw_mean_steps_to_goal.append(np.mean(d_gw_mean_steps_to_goal))
-            gw_mean_cumul_reward.append(np.mean(d_gw_mean_cumul_reward))
-            gw_std_steps_to_goal.append(np.std(d_gw_mean_steps_to_goal))
-            gw_std_cumul_reward.append(np.std(d_gw_mean_cumul_reward))
+        if dn2v:
+            dn2v_mean_steps_to_goal.append(np.mean(d_dn2v_mean_steps_to_goal))
+            dn2v_mean_cumul_reward.append(np.mean(d_dn2v_mean_cumul_reward))
+            dn2v_std_steps_to_goal.append(np.std(d_dn2v_mean_steps_to_goal))
+            dn2v_std_cumul_reward.append(np.std(d_dn2v_mean_cumul_reward))
 
         if gcn:
             gcn_mean_steps_to_goal.append(np.mean(d_gcn_mean_steps_to_goal))
@@ -202,8 +203,8 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
         ax.errorbar(NUM_WALKS, s2v_mean_steps_to_goal, yerr=s2v_std_steps_to_goal, fmt='c', ecolor='cyan', label='s2v')
     if gcn:
         ax.errorbar(NUM_WALKS, gcn_mean_steps_to_goal, yerr=gcn_std_steps_to_goal, fmt='m', ecolor='magenta', label='gcn')
-    if gw:
-        ax.errorbar(NUM_WALKS, gw_mean_steps_to_goal, yerr=gw_std_steps_to_goal, fmt='k', ecolor='black', label='gw')
+    if dn2v:
+        ax.errorbar(NUM_WALKS, dn2v_mean_steps_to_goal, yerr=dn2v_std_steps_to_goal, fmt='k', ecolor='black', label='dn2v')
 
     ax.legend()
     ax.set_title('average number of steps')
@@ -217,12 +218,12 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
         ax.errorbar(NUM_WALKS, s2v_mean_cumul_reward, yerr=s2v_std_cumul_reward, fmt='c', ecolor='cyan', label='s2v')
     if gcn:
         ax.errorbar(NUM_WALKS, gcn_mean_cumul_reward, yerr=gcn_std_cumul_reward, fmt='m', ecolor='magenta', label='gcn')
-    if gw:
-        ax.errorbar(NUM_WALKS, gw_mean_cumul_reward, yerr=gw_std_cumul_reward, fmt='k', ecolor='black', label='gw')
+    if dn2v:
+        ax.errorbar(NUM_WALKS, dn2v_mean_cumul_reward, yerr=dn2v_std_cumul_reward, fmt='k', ecolor='black', label='dn2v')
 
     ax.set_title('average cumulative reward')
     ax.legend()
-    figure_name = 'plots/' + environment_name + '/n2v_pvf_' + str(dimension) + 'dimension_'+ str(discount) + 'discount_' + str(window_size) + 'windowsize_' + str(wl) + 'walkLength_penalty_policyWalks_20n2vEpochs_numWalks.pdf'
+    figure_name = 'plots/' + environment_name + '/dn2v_' + str(dimension) + 'dimension_'+ str(discount) + 'discount_' + str(window_size) + 'windowsize_' + str(wl) + 'walkLength_penalty_policyWalks_20n2vEpochs_numWalks.pdf'
     plt.savefig(figure_name)
     print("Saved figure %s " % figure_name)
 
@@ -248,12 +249,12 @@ def run_experiment(environment_name, environment, edge_lisit, num_states, reward
     #         'pickles/gcn_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
     #     pickle.dump({'mean': gcn_mean_steps_to_goal, 'std': gcn_std_steps_to_goal}, gcn_pickle)
     #     gcn_pickle.close()
-    # if gw:
-    #     gw_pickle = open(
-    #         'pickles/gw_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
+    # if dn2v:
+    #     dn2v_pickle = open(
+    #         'pickles/dn2v_' + environment_name + '_' + str(DISCOUNT) + 'discount_' + str(num_samples) + 'samples', 'wb')
     #
-    #     pickle.dump({'mean': gw_mean_steps_to_goal, 'std': gw_std_steps_to_goal}, gw_pickle)
-    #     gw_pickle.close()
+    #     pickle.dump({'mean': dn2v_mean_steps_to_goal, 'std': dn2v_std_steps_to_goal}, dn2v_pickle)
+    #     dn2v_pickle.close()
 
 
 def example():

@@ -105,7 +105,7 @@ class Graph():
                             walks.append(walk)
         return walks
 
-    def simulate_ranadom_walks(self, num_walks, walk_length):
+    def simulate_random_walks(self, num_walks, walk_length):
         '''
         Repeatedly simulate random walks from random nodes.
         '''
