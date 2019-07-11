@@ -1408,9 +1408,9 @@ class DiscountedNode2vecBasis(BasisFunction):
 
         self.G = node2vec.Graph(self._nxgraph, False, self._p, self._q, transition_probabilities)
         self.G.preprocess_transition_probs()
-        walks = self.G.simulate_random_walks(self._num_walks, self._walk_length)#, True, reward_locations)
+        self.walks = self.G.simulate_random_walks(self._num_walks, self._walk_length)#, True, reward_locations)
         # print(walks[:50])
-        self.model, _ = self.learn_embeddings(walks)
+        self.model, _ = self.learn_embeddings(self.walks)
 
     def size(self):
         r"""Return the vector size of the basis function.
